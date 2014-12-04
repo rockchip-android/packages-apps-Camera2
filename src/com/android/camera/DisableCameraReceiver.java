@@ -38,9 +38,9 @@ public class DisableCameraReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         // Disable camera-related activities if there is no camera.
-        boolean needCameraActivity = CHECK_BACK_CAMERA_ONLY
+        boolean needCameraActivity = true;/*CHECK_BACK_CAMERA_ONLY
             ? hasBackCamera()
-            : hasCamera();
+            : hasCamera();*/
 
         if (!needCameraActivity) {
             Log.i(TAG, "disable all camera activities");
