@@ -212,9 +212,9 @@ public class StateReviewingPicture extends StateImpl {
 
     @Override
     public void onLeave() {
-        mResourceCaptureTools.close();
         mResourceCaptureTools.get().getCaptureSessionManager()
                 .removeSessionListener(mCaptureSessionListener);
+        mResourceCaptureTools.close();
     }
 
     private void showPicture(final Bitmap bitmap) {

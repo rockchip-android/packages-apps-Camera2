@@ -1551,7 +1551,7 @@ public class PhotoModule
         cancelCountDown();
         mCountdownSoundPlayer.unloadSound(R.raw.timer_final_second);
         mCountdownSoundPlayer.unloadSound(R.raw.timer_increment);
-
+	 mCountdownSoundPlayer.release();
         mNamedImages = null;
         // If we are in an image capture intent and has taken
         // a picture, we just clear it in onPause.

@@ -153,6 +153,7 @@ public class ResourceSurfaceTextureImpl implements ResourceSurfaceTexture {
 
     @Override
     public void close() {
+        Log.d(TAG, "ResourceSurfaceTextureImpl.java=======close()");
         mResourceConstructed.close();
     }
 }

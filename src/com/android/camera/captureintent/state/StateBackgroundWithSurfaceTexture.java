@@ -81,6 +81,7 @@ public class StateBackgroundWithSurfaceTexture extends StateImpl {
                 new EventHandler<EventOnSurfaceTextureDestroyed>() {
                     @Override
                     public Optional<State> processEvent(EventOnSurfaceTextureDestroyed event) {
+                        // wgh : has a memleak, TODO
                         return Optional.of((State) StateBackground.from(
                                 StateBackgroundWithSurfaceTexture.this, mResourceConstructed));
                     }

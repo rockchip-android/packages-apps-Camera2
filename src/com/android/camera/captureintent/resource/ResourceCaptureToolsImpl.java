@@ -107,13 +107,15 @@ public final class ResourceCaptureToolsImpl implements ResourceCaptureTools {
 
     @Override
     public void close() {
-        Log.d(TAG, "close");
+        Log.d(TAG, "ResourceCaptureToolsImpl.java=======close");
         mResourceConstructed.close();
         mResourceSurfaceTexture.close();
         mResourceOpenedCamera.close();
         mHeadingSensor.deactivate();
         mSoundPlayer.unloadSound(R.raw.timer_increment);
         mSoundPlayer.unloadSound(R.raw.timer_final_second);
+	 mSoundPlayer.release();
+	 mMediaActionSound.release();
     }
 
     @Override

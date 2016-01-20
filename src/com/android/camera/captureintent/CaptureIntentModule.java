@@ -148,12 +148,14 @@ public class CaptureIntentModule extends CameraModule {
 
     @Override
     public void resume() {
+       Log.e(TAG, "CaptureIntentModule.java=======resume");
         mModuleUI.onModuleResumed();
         mStateMachine.processEvent(new EventResume());
     }
 
     @Override
     public void pause() {
+       Log.e(TAG, "CaptureIntentModule.java=======pause");
         mModuleUI.setCountdownFinishedListener(null);
         mModuleUI.onModulePaused();
         mStateMachine.processEvent(new EventPause());
@@ -162,6 +164,8 @@ public class CaptureIntentModule extends CameraModule {
     @Override
     public void destroy() {
         // Never called. Do nothing here.
+       Log.e(TAG, "CaptureIntentModule.java=======destroy");
+        mResourceConstructed.get().close();
     }
 
     @Override

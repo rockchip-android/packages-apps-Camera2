@@ -215,10 +215,17 @@ public final class StateOpeningCamera extends StateImpl {
         return Optional.absent();
     }
 
+    private void unRegisterEventHandler() {
+		removeEventHandler(EventPause.class);
+		removeEventHandler(EventOnOpenCameraSucceeded.class);
+		removeEventHandler(EventOnOpenCameraFailed.class);
+    }
+
     @Override
     public void onLeave() {
         mResourceConstructed.close();
         mResourceSurfaceTexture.close();
+	  unRegisterEventHandler();
     }
 
     @VisibleForTesting

@@ -76,5 +76,6 @@ public final class StateIntentCompleted extends StateImpl {
 
     @Override
     public void onLeave() {
+        mResourceConstructed.close();
     }
 }

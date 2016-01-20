@@ -55,4 +55,11 @@ public final class StateFatal extends StateImpl {
         });
         return NO_CHANGE;
     }
+
+	@Override
+	public void onLeave() {
+		mResourceConstructed.close();
+	}
+
+	
 }

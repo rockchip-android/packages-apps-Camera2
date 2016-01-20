@@ -913,6 +913,7 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
     }
 
     public void onDestroy() {
+	 Log.d(TAG, "CameraAppUI==========onDestroy()");
         AndroidServices.instance().provideDisplayManager()
                 .unregisterDisplayListener(mDisplayListener);
     }

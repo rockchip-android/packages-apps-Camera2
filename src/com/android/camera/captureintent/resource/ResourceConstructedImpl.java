@@ -35,7 +35,7 @@ import com.android.camera.one.OneCameraOpener;
 import com.android.camera.settings.CameraFacingSetting;
 import com.android.camera.settings.ResolutionSetting;
 import com.android.camera.settings.SettingsManager;
-
+import android.util.Log;
 public final class ResourceConstructedImpl implements ResourceConstructed {
     private final Intent mIntent;
     private final CaptureIntentModuleUI mModuleUI;
@@ -117,6 +117,7 @@ public final class ResourceConstructedImpl implements ResourceConstructed {
         mFatalErrorHandler = fatalErrorHandler;
         mSoundPlayer = new SoundPlayer(mContext);
         mAppController = appController;
+		
 
         mCameraThread = new HandlerThread("ImageCaptureIntentModule.CameraHandler");
         mCameraThread.start();
@@ -125,6 +126,8 @@ public final class ResourceConstructedImpl implements ResourceConstructed {
 
     @Override
     public void close() {
+       Log.e("ResourceConstructedImpl", " close() ");
+	  mSoundPlayer.release();
         mCameraThread.quit();
     }
 
