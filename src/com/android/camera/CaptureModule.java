@@ -739,7 +739,6 @@ public class CaptureModule extends CameraModule implements
         mSoundPlayer.unloadSound(R.raw.timer_final_second);
         mSoundPlayer.unloadSound(R.raw.timer_increment);
 	 mSoundPlayer.release();
-	 mMediaActionSound.release();
 	 android.util.Log.d("CaptureModule", " pause() ");
     }
 
