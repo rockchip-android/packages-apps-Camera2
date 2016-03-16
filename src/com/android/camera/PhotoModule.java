@@ -391,9 +391,9 @@ public class PhotoModule
         // Aspect Ratio selection dialog is only shown for Nexus 4, 5 and 6.
         if (mAppController.getCameraAppUI().shouldShowAspectRatioDialog()) {
             // Switch to back camera to set aspect ratio.
-            settingsManager.setToDefault(mAppController.getModuleScope(), Keys.KEY_CAMERA_ID);
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL, Keys.KEY_CAMERA_ID);
         }
-        mCameraId = settingsManager.getInteger(mAppController.getModuleScope(),
+        mCameraId = settingsManager.getInteger(SettingsManager.SCOPE_GLOBAL,
                                                Keys.KEY_CAMERA_ID);
 
         mContentResolver = mActivity.getContentResolver();
@@ -490,7 +490,7 @@ public class PhotoModule
         closeCamera();
         mCameraId = mPendingSwitchCameraId;
 
-        settingsManager.set(mAppController.getModuleScope(), Keys.KEY_CAMERA_ID, mCameraId);
+        settingsManager.set(SettingsManager.SCOPE_GLOBAL, Keys.KEY_CAMERA_ID, mCameraId);
         requestCameraOpen();
         mUI.clearFaces();
         if (mFocusManager != null) {
@@ -528,7 +528,7 @@ public class PhotoModule
                     // switch back to gcam, otherwise handle callback normally.
                     SettingsManager settingsManager = mActivity.getSettingsManager();
                     if (Keys.isCameraBackFacing(settingsManager,
-                                                mAppController.getModuleScope())) {
+                                                SettingsManager.SCOPE_GLOBAL)) {
                         if (Keys.requestsReturnToHdrPlus(settingsManager,
                                                          mAppController.getModuleScope())) {
                             switchToGcamCapture();
@@ -558,7 +558,7 @@ public class PhotoModule
                     if (GcamHelper.hasGcamAsSeparateModule(
                             mAppController.getCameraFeatureConfig())) {
                         // Set the camera setting to default backfacing.
-                        settingsManager.setToDefault(mAppController.getModuleScope(),
+                        settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
                                                      Keys.KEY_CAMERA_ID);
                         switchToGcamCapture();
                     } else {

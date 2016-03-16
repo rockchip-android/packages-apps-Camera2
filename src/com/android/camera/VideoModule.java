@@ -340,7 +340,7 @@ public class VideoModule extends CameraModule
         mActivity.setPreviewStatusListener(mUI);
 
         SettingsManager settingsManager = mActivity.getSettingsManager();
-        mCameraId = settingsManager.getInteger(mAppController.getModuleScope(),
+        mCameraId = settingsManager.getInteger(SettingsManager.SCOPE_GLOBAL,
                                                Keys.KEY_CAMERA_ID);
 
         /*
@@ -1672,7 +1672,7 @@ public class VideoModule extends CameraModule
             mCameraSettings.setPreviewFrameRate(mProfile.videoFrameRate);
         }
 
-        enableTorchMode(Keys.isCameraBackFacing(settingsManager, mAppController.getModuleScope()));
+        enableTorchMode(Keys.isCameraBackFacing(settingsManager, SettingsManager.SCOPE_GLOBAL));
 
         // Set zoom.
         if (mCameraCapabilities.supports(CameraCapabilities.Feature.ZOOM)) {
@@ -1845,7 +1845,7 @@ public class VideoModule extends CameraModule
         Log.d(TAG, "Start to switch camera.");
         mCameraId = mPendingSwitchCameraId;
         mPendingSwitchCameraId = -1;
-        settingsManager.set(mAppController.getModuleScope(),
+        settingsManager.set(SettingsManager.SCOPE_GLOBAL,
                             Keys.KEY_CAMERA_ID, mCameraId);
 
         if (mFocusManager != null) {

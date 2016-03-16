@@ -413,7 +413,7 @@ public class CaptureModule extends CameraModule implements
         }
         mDisplayRotation = CameraUtil.getDisplayRotation();
         mCameraFacing = getFacingFromCameraId(
-              mSettingsManager.getInteger(mAppController.getModuleScope(), Keys.KEY_CAMERA_ID));
+              mSettingsManager.getInteger(SettingsManager.SCOPE_GLOBAL, Keys.KEY_CAMERA_ID));
         mShowErrorAndFinish = !updateCameraCharacteristics();
         if (mShowErrorAndFinish) {
             return;
@@ -765,7 +765,7 @@ public class CaptureModule extends CameraModule implements
             // Sticky HDR+ mode should hard reset HDR+ to on, and camera back
             // facing.
             settingsManager.set(SettingsManager.SCOPE_GLOBAL, Keys.KEY_CAMERA_HDR_PLUS, true);
-            settingsManager.set(mAppController.getModuleScope(), Keys.KEY_CAMERA_ID,
+            settingsManager.set(SettingsManager.SCOPE_GLOBAL, Keys.KEY_CAMERA_ID,
                   mOneCameraManager.findFirstCameraFacing(Facing.BACK).getValue());
         }
     }
@@ -1124,7 +1124,7 @@ public class CaptureModule extends CameraModule implements
                     // has changed to the desired camera.
                     SettingsManager settingsManager = mAppController.getSettingsManager();
                     if (Keys.isCameraBackFacing(settingsManager,
-                            mAppController.getModuleScope())) {
+                            SettingsManager.SCOPE_GLOBAL)) {
                         throw new IllegalStateException(
                                 "Hdr plus should never be switching from front facing camera.");
                     }
@@ -1149,7 +1149,7 @@ public class CaptureModule extends CameraModule implements
 
                     // At the time this callback is fired, the camera id
                     // has be set to the desired camera.
-                    mSettingsManager.set(mAppController.getModuleScope(), Keys.KEY_CAMERA_ID,
+                    mSettingsManager.set(SettingsManager.SCOPE_GLOBAL, Keys.KEY_CAMERA_ID,
                             cameraId);
 
                     Log.d(TAG, "Start to switch camera. cameraId=" + cameraId);

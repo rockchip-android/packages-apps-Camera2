@@ -1387,6 +1387,7 @@ public class CameraActivity extends QuickActivity
                 public void onCameraError(int errorCode) {
                     // Not a fatal error. only do Log.e().
                     Log.e(TAG, "Camera error callback. error=" + errorCode);
+                    onFatalError();
                 }
                 @Override
                 public void onCameraException(
