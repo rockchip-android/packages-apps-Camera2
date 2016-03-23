@@ -2190,7 +2190,9 @@ public class CameraActivity extends QuickActivity
         if (mSoundPlayer != null) {
           mSoundPlayer.release();
         }
-	  mCurrentModule.destroy();
+        if (mCurrentModule != null) {
+            mCurrentModule.destroy();
+        }
         CameraAgentFactory.recycle(CameraAgentFactory.CameraApi.API_1);
         CameraAgentFactory.recycle(CameraAgentFactory.CameraApi.AUTO);
     }

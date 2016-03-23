@@ -135,6 +135,9 @@ public class Camera2OneCameraManagerImpl implements OneCameraManager {
         String cameraId = findFirstCameraIdFacing(CameraCharacteristics.LENS_FACING_BACK);
         if (cameraId == null) {
             Log.w(TAG, "No back-facing camera found.");
+            Log.d(TAG, "Getting First FRONT Camera");
+            //xcq add
+            cameraId = findFirstCameraIdFacing(CameraCharacteristics.LENS_FACING_FRONT);
         }
         return cameraId;
     }
