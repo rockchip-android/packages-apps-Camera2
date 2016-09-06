@@ -90,6 +90,7 @@ import com.android.camera.util.Size;
 import com.android.camera2.R;
 import com.android.ex.camera2.portability.CameraAgent.CameraProxy;
 import com.google.common.logging.eventprotos;
+import android.hardware.Camera.CameraInfo;
 
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -1544,7 +1545,15 @@ public class CaptureModule extends CameraModule implements
      * settings, rather than a Camera ID.
      */
     private static Facing getFacingFromCameraId(int cameraId) {
-        return cameraId == 1 ? Facing.FRONT : Facing.BACK;
+        //return cameraId == 1 ? Facing.FRONT : Facing.BACK;
+        CameraInfo info = new CameraInfo();
+        android.hardware.Camera.getCameraInfo(cameraId, info);
+        if (info.facing == CameraInfo.CAMERA_FACING_BACK) {
+            Log.d(TAG, "========back camera found=======");
+            return Facing.BACK;
+        }
+        Log.d(TAG, "========front camera found=======");
+        return Facing.FRONT;
     }
 
     private void resetTextureBufferSize() {
