@@ -1566,4 +1566,22 @@ public class CaptureModule extends CameraModule implements
         // TextureView.
         updatePreviewBufferSize();
     }
+
+    @Override
+    public void onShutterButtonLongClickRelease() {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void onNonDecorWindowSizeChanged() {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void onOrientationChanged(int orientation) {
+        // TODO Auto-generated method stub
+        
+    }
 }

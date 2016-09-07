@@ -16,7 +16,9 @@
 
 package com.android.camera;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
@@ -24,8 +26,10 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.location.Location;
@@ -45,6 +49,7 @@ import android.provider.MediaStore;
 import android.provider.MediaStore.MediaColumns;
 import android.provider.MediaStore.Video;
 import android.view.KeyEvent;
+import android.view.OrientationEventListener;
 import android.view.View;
 import android.widget.Toast;
 
@@ -55,6 +60,7 @@ import com.android.camera.app.MediaSaver;
 import com.android.camera.app.MemoryManager;
 import com.android.camera.app.MemoryManager.MemoryListener;
 import com.android.camera.app.OrientationManager;
+import com.android.camera.debug.DebugPropertyHelper;
 import com.android.camera.debug.Log;
 import com.android.camera.exif.ExifInterface;
 import com.android.camera.hardware.HardwareSpec;
@@ -63,6 +69,7 @@ import com.android.camera.module.ModuleController;
 import com.android.camera.settings.Keys;
 import com.android.camera.settings.SettingsManager;
 import com.android.camera.settings.SettingsUtil;
+import com.android.camera.ui.CountDownView;
 import com.android.camera.ui.TouchCoordinate;
 import com.android.camera.util.AndroidServices;
 import com.android.camera.util.ApiHelper;
@@ -90,9 +97,12 @@ import java.util.Set;
 public class VideoModule extends CameraModule
         implements FocusOverlayManager.Listener, MediaRecorder.OnErrorListener,
         MediaRecorder.OnInfoListener, MemoryListener,
-        OrientationManager.OnOrientationChangeListener, VideoController {
+        /*OrientationManager.OnOrientationChangeListener,*/ VideoController,
+		SettingsManager.OnSettingChangedListener,
+        CountDownView.OnCountDownStatusListener {
 
     private static final Log.Tag TAG = new Log.Tag("VideoModule");
+    private final boolean DEBUG = DebugPropertyHelper.isDebugOn();
 
     // Messages defined for the UI thread handler.
     private static final int MSG_CHECK_DISPLAY_ROTATION = 4;
@@ -183,6 +193,9 @@ public class VideoModule extends CameraModule
     private VideoUI mUI;
     private CameraProxy mCameraDevice;
 
+    // The degrees of the device rotated clockwise from its natural orientation.
+    private int mOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
+
     private float mZoomValue;  // The current zoom ratio.
 
     private final MediaSaver.OnMediaSavedListener mOnVideoSavedListener =
@@ -211,6 +224,11 @@ public class VideoModule extends CameraModule
     private boolean mMirror;
     private boolean mFocusAreaSupported;
     private boolean mMeteringAreaSupported;
+    private boolean mAwbLockSupported;
+    private List<String> mSupportedColorEffects;
+    private List<String> mSupportedAntiBandings;
+    private int mTimerDuration;
+    private SoundPlayer mCountdownSoundPlayer;
 
     private final CameraAgent.CameraAFCallback mAutoFocusCallback =
             new CameraAgent.CameraAFCallback() {
@@ -361,10 +379,22 @@ public class VideoModule extends CameraModule
         mUI.setOrientationIndicator(0, false);
         setDisplayOrientation();
 
+        mUI.setCountdownFinishedListener(this);
+        mCountdownSoundPlayer = new SoundPlayer(mAppController.getAndroidContext());
+
         mPendingSwitchCameraId = -1;
 
         mShutterIconId = CameraUtil.getCameraShutterIconId(
                 mAppController.getCurrentModuleIndex(), mAppController.getAndroidContext());
+        
+        // TODO: Make this a part of app controller API.
+        View cancelButton = mActivity.findViewById(R.id.shutter_cancel_button);
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                cancelCountDown();
+            }
+        });
     }
 
     @Override
@@ -384,7 +414,9 @@ public class VideoModule extends CameraModule
 
     @Override
     public void onSingleTapUp(View view, int x, int y) {
-        if (mPaused || mCameraDevice == null) {
+        if (mPaused || mCameraDevice == null
+                || mSwitchingCamera || mSnapshotInProgress) {
+            Log.d(TAG, "camera busy ignore touch focus");
             return;
         }
         if (mMediaRecorderRecording) {
@@ -403,7 +435,8 @@ public class VideoModule extends CameraModule
 
     private void takeASnapshot() {
         // Only take snapshots if video snapshot is supported by device
-        if(!mCameraCapabilities.supports(CameraCapabilities.Feature.VIDEO_SNAPSHOT)) {
+        if(!mCameraCapabilities.supports(CameraCapabilities.Feature.VIDEO_SNAPSHOT)
+                && !DebugPropertyHelper.isVideoSnapShotEnabled()) {
             Log.w(TAG, "Cannot take a video snapshot - not supported by hardware");
             return;
         }
@@ -484,9 +517,66 @@ public class VideoModule extends CameraModule
     }
 
     @Override
-    public void onOrientationChanged(OrientationManager orientationManager,
-                                     OrientationManager.DeviceOrientation deviceOrientation) {
-        mUI.onOrientationChanged(orientationManager, deviceOrientation);
+    public void onOrientationChanged(int orientation) {
+        //mUI.onOrientationChanged(orientationManager, deviceOrientation);
+        // We keep the last known orientation. So if the user first orient
+        // the camera then point the camera to floor or sky, we still have
+        // the correct orientation.
+        if (orientation == OrientationEventListener.ORIENTATION_UNKNOWN) {
+            return;
+        }
+        if (!CameraUtil.AUTO_ROTATE_SENSOR) {
+            if (CameraUtil.mLastOrientation != OrientationEventListener.ORIENTATION_UNKNOWN
+                    && mOrientation != OrientationEventListener.ORIENTATION_UNKNOWN) {
+                int newOrientation = CameraUtil.roundOrientation(orientation, mOrientation);
+
+                if (mOrientation != newOrientation) {
+                    mOrientation = newOrientation;
+                }
+
+                if (!CameraUtil.AUTO_ROTATE_SENSOR) {
+                    int tmp = (360 - orientation) % 360;
+                    if (CameraUtil.mLastOrientation != tmp) {
+                        Log.i(TAG, "mLastOrientation = " + CameraUtil.mLastOrientation
+                                + ",mOrientation = " + tmp
+                                + ",mLastUIRotatedRawOrientation = " + CameraUtil.mLastUIRotatedRawOrientation
+                                + ",mRawOrientation = " + CameraUtil.mRawOrientation);
+                        if (Math.abs(CameraUtil.mRawOrientation - CameraUtil.mLastUIRotatedRawOrientation) < 10) return;
+                        CameraUtil.calculateCurrentScreenOrientation(CameraUtil.mLastOrientation, tmp, mActivity);
+                        mUI.updateUIByOrientation();
+                        CameraUtil.mLastUIRotatedRawOrientation = CameraUtil.mRawOrientation;
+                        CameraUtil.mLastOrientation = (360 - mOrientation) % 360;
+                    }
+                }
+            } else {
+                if (CameraUtil.mLastOrientation != OrientationEventListener.ORIENTATION_UNKNOWN) {
+                    //CameraUtil.mLastOrientation = (360 - orientation) % 360;
+                } else
+                    CameraUtil.mLastOrientation = CameraUtil.getDisplayRotation();
+                Log.i(TAG, "init mLastOrientation from displayRotation = " + CameraUtil.mLastOrientation
+                        + ",mOrientation = " + mOrientation
+                        + ",getDisplayRotation = " + CameraUtil.getDisplayRotation());
+
+                int newOrientation = CameraUtil.roundOrientation(orientation, mOrientation);
+
+                if (mOrientation != newOrientation) {
+                    mOrientation = newOrientation;
+                }
+
+                int tmp = (360 - orientation) % 360;
+                CameraUtil.calculateCurrentScreenOrientation(CameraUtil.mLastOrientation, tmp, mActivity);
+                mUI.updateUIByOrientation();
+                CameraUtil.mLastUIRotatedRawOrientation = CameraUtil.mRawOrientation;
+                CameraUtil.mLastOrientation = (360 - mOrientation) % 360;
+                return;
+            }
+        } else {
+            int newOrientation = CameraUtil.roundOrientation(orientation, mOrientation);
+
+            if (mOrientation != newOrientation) {
+                mOrientation = newOrientation;
+            }
+        }
     }
 
     private final ButtonManager.ButtonCallback mFlashCallback =
@@ -576,6 +666,53 @@ public class VideoModule extends CameraModule
             bottomBarSpec.reviewCallback = mReviewCallback;
         }
 
+        if (mCameraCapabilities != null) {
+            bottomBarSpec.enableWhiteBalance = true;
+            bottomBarSpec.supportedWhiteBalances = mCameraCapabilities.getSupportedWhiteBalance();
+            bottomBarSpec.whiteBalanceSetCallback = 
+                    new CameraAppUI.BottomBarUISpec.WhiteBalanceSetCallback() {
+
+                @Override
+                public void setWhiteBalance(String value) {
+                    // TODO Auto-generated method stub
+                    if (mPaused || mCameraSettings == null
+                            || mCameraCapabilities == null) return;
+                    if (DEBUG) Log.i(TAG, "WhiteBalanceSetCallback");
+                    setWhiteBalanceInternal(value);
+                }
+            };
+            if (DEBUG) {
+                Log.i(TAG, "supportedWhiteBalances size = " 
+                        + bottomBarSpec.supportedWhiteBalances.size());
+                for (CameraCapabilities.WhiteBalance wb : bottomBarSpec.supportedWhiteBalances) {
+                    Log.i(TAG, "supported wb = " + wb.name());
+                }
+            }
+
+            bottomBarSpec.enableColorEffect = false;
+            bottomBarSpec.supportedColorEffects = mSupportedColorEffects;
+            bottomBarSpec.colorEffectSetCallback = new CameraAppUI.BottomBarUISpec.ColorEffectSetCallback() {
+
+                @Override
+                public void setColorEffect(String value) {
+                    // TODO Auto-generated method stub
+                    if (mPaused || mCameraSettings == null) return;
+                    if (DEBUG) Log.i(TAG, "colorEffectSetCallback");
+                    setColorEffectInternal(value);
+                }
+            };
+            if (bottomBarSpec.supportedColorEffects != null) {
+                if (DEBUG)
+                    for (String effect : bottomBarSpec.supportedColorEffects)
+                        Log.i(TAG, "support coloreffect = " + effect);
+            } else {
+                bottomBarSpec.supportedColorEffects = new ArrayList<String>();
+            }
+        }
+
+        bottomBarSpec.enableSelfTimer = true;
+        bottomBarSpec.showSelfTimer = true;
+
         return bottomBarSpec;
     }
 
@@ -593,6 +730,9 @@ public class VideoModule extends CameraModule
         mFocusAreaSupported = mCameraCapabilities.supports(CameraCapabilities.Feature.FOCUS_AREA);
         mMeteringAreaSupported =
                 mCameraCapabilities.supports(CameraCapabilities.Feature.METERING_AREA);
+        mAwbLockSupported = mCameraCapabilities.supports(CameraCapabilities.Feature.AUTO_WHITE_BALANCE_LOCK);
+        mSupportedColorEffects = mCameraCapabilities.getSupportedColorEffects();
+        mSupportedAntiBandings = mCameraCapabilities.getSupportedAntiBanding();
         readVideoPreferences();
         updateDesiredPreviewSize();
         resizeForPreviewAspectRatio();
@@ -602,9 +742,15 @@ public class VideoModule extends CameraModule
         // parameters are up to date.
         mFocusManager.updateCapabilities(mCameraCapabilities);
 
+        // Set a listener which updates camera parameters based
+        // on changed settings.
+        SettingsManager settingsManager = mActivity.getSettingsManager();
+        settingsManager.addListener(this);
+
         startPreview();
         initializeVideoSnapshot();
         mUI.initializeZoom(mCameraSettings, mCameraCapabilities);
+        mAppController.getButtonManager().setCameraCapabilities(mCameraCapabilities);
         initializeControlByIntent();
 
         mHardwareSpec = new HardwareSpecImpl(getCameraProvider(), mCameraCapabilities,
@@ -654,7 +800,21 @@ public class VideoModule extends CameraModule
         return mIsInReviewMode;
     }
 
+    private void checkRecordingTime() {
+        long delta = SystemClock.uptimeMillis() - mRecordingStartTime;
+        Log.i(TAG, "checkRecordingTime startTime = " + mRecordingStartTime + ", delta = " + delta);
+        if (delta < 1000) {
+            try {
+                Thread.sleep(1000 - delta);
+            } catch (Exception e) {
+                Log.e(TAG, "checkRecordingTime error:" + e);
+            }
+        }
+    }
+
     private void onStopVideoRecording() {
+        AudioManager am = (AudioManager) mActivity.getSystemService(Context.AUDIO_SERVICE);
+        am.abandonAudioFocus(null);
         mAppController.getCameraAppUI().setSwipeEnabled(true);
         boolean recordFail = stopVideoRecording();
         if (mIsVideoCaptureIntent) {
@@ -663,6 +823,7 @@ public class VideoModule extends CameraModule
             } else if (!recordFail) {
                 showCaptureResult();
             }
+            mAppController.getCameraAppUI().disableModeOptions();
         } else if (!recordFail){
             // Start capture animation.
             if (!mPaused && ApiHelper.HAS_SURFACE_TEXTURE_RECORDING) {
@@ -688,21 +849,38 @@ public class VideoModule extends CameraModule
 
     @Override
     public void onShutterButtonClick() {
-        if (mSwitchingCamera) {
+        if (mSwitchingCamera || !mAppController.getCameraAppUI().isModeCoverHide()) {
             return;
         }
         boolean stop = mMediaRecorderRecording;
 
         if (stop) {
+            long delta = SystemClock.uptimeMillis() - mRecordingStartTime;
+            Log.i(TAG, "mRecordingStartTime = " + mRecordingStartTime + ", delta = " + delta);
+            if (delta < 1000) {
+                Log.i(TAG, "recorder duration too short");
+                return;
+            }
             // CameraAppUI mishandles mode option enable/disable
             // for video, override that
             mAppController.getCameraAppUI().enableModeOptions();
             onStopVideoRecording();
         } else {
-            // CameraAppUI mishandles mode option enable/disable
-            // for video, override that
-            mAppController.getCameraAppUI().disableModeOptions();
-            startVideoRecording();
+            int countDownDuration = mActivity.getSettingsManager()
+                .getInteger(SettingsManager.SCOPE_GLOBAL, Keys.KEY_COUNTDOWN_DURATION);
+            mTimerDuration = countDownDuration;
+            if (countDownDuration > 0) {
+                // Start count down.
+                mAppController.getCameraAppUI().transitionToCancel();
+                mAppController.getCameraAppUI().hideModeOptions();
+                mUI.startCountdown(countDownDuration);
+                return;
+            } else {
+                // CameraAppUI mishandles mode option enable/disable
+                // for video, override that
+                mAppController.getCameraAppUI().disableModeOptions();
+                startVideoRecording();
+            }
         }
         mAppController.setShutterEnabled(false);
         if (mCameraSettings != null) {
@@ -927,6 +1105,16 @@ public class VideoModule extends CameraModule
             stopPreview();
         }
 
+        if (mActivity.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL,
+                Keys.KEY_BURST_CAPTURE_ON)) {
+            if (mCameraDevice != null /*&& mIntelCamera != null*/) {
+                Log.i(TAG, "setBurstParameters off");
+                mCameraSettings.setBurstMode("off");
+                mCameraSettings.setBurstLength(1);
+                mCameraDevice.applySettings(mCameraSettings);
+            }
+        }
+
         setDisplayOrientation();
         mCameraDevice.setDisplayOrientation(mDisplayRotation);
         setCameraParameters();
@@ -939,6 +1127,7 @@ public class VideoModule extends CameraModule
             if (focusMode == CameraCapabilities.FocusMode.CONTINUOUS_PICTURE) {
                 mCameraDevice.cancelAutoFocus();
             }
+            mFocusManager.setAeAwbLock(false); // Unlock AE and AWB.
         }
 
         // This is to notify app controller that preview will start next, so app
@@ -970,10 +1159,16 @@ public class VideoModule extends CameraModule
 
     private void onPreviewStarted() {
         mAppController.setShutterEnabled(true);
+        mAppController.setShutterLongClickEnabled(false);
         mAppController.onPreviewStarted();
         if (mFocusManager != null) {
             mFocusManager.onPreviewStarted();
         }
+        mAppController.getButtonManager().resetModeOptionsButtonScroll();
+        if (mUI.isReviewVisible())
+            mAppController.getCameraAppUI().disableModeOptions();
+        else
+            mAppController.getCameraAppUI().setSwipeEnabled(true);
     }
 
     @Override
@@ -1021,6 +1216,7 @@ public class VideoModule extends CameraModule
             return true;
         }
         if (mMediaRecorderRecording) {
+            checkRecordingTime();
             onStopVideoRecording();
             return true;
         } else {
@@ -1173,6 +1369,8 @@ public class VideoModule extends CameraModule
             // on the size restriction.
         }
 
+        if (mOrientation == OrientationEventListener.ORIENTATION_UNKNOWN)
+            mOrientation = (360 - mDisplayRotation) % 360;
         int sensorOrientation =
                 mActivity.getCameraProvider().getCharacteristics(mCameraId).getSensorOrientation();
         int deviceOrientation =
@@ -1236,6 +1434,9 @@ public class VideoModule extends CameraModule
         mCurrentVideoValues.put(Video.Media.RESOLUTION,
                 Integer.toString(mProfile.videoFrameWidth) + "x" +
                 Integer.toString(mProfile.videoFrameHeight));
+        boolean isPortrait = mActivity.getResources().getConfiguration()
+                .orientation == Configuration.ORIENTATION_PORTRAIT;
+        mCurrentVideoValues.put(Video.Media.TAGS, isPortrait ? "port" : "land");
         Location loc = mLocationManager.getCurrentLocation();
         if (loc != null) {
             mCurrentVideoValues.put(Video.Media.LATITUDE, loc.getLatitude());
@@ -1437,6 +1638,37 @@ public class VideoModule extends CameraModule
                 }
             }
         });
+    }
+
+    @Override
+    public void onRemainingSecondsChanged(int remainingSeconds) {
+        if (remainingSeconds == 1) {
+            mCountdownSoundPlayer.play(R.raw.timer_final_second, 0.6f);
+        } else if (remainingSeconds == 2 || remainingSeconds == 3) {
+            mCountdownSoundPlayer.play(R.raw.timer_increment, 0.6f);
+        }
+    }
+
+    @Override
+    public void onCountDownFinished() {
+        mAppController.getCameraAppUI().transitionToCapture();
+        mAppController.getCameraAppUI().showModeOptions();
+        if (mPaused) {
+            return;
+        }
+        // CameraAppUI mishandles mode option enable/disable
+        // for video, override that
+        mAppController.getCameraAppUI().disableModeOptions();
+        startVideoRecording();
+    }
+
+    @Override
+    public void onSettingChanged(SettingsManager settingsManager, String key) {
+        // TODO Auto-generated method stub
+        if (mPaused) return;
+        Log.i(TAG, "onSettingChanged = " + key);
+        if (mCameraDevice != null)
+            mCameraDevice.applySettings(mCameraSettings);
     }
 
     private Bitmap getVideoThumbnail() {
@@ -1679,6 +1911,8 @@ public class VideoModule extends CameraModule
             mCameraSettings.setZoomRatio(mZoomValue);
         }
         updateFocusParameters();
+        
+        updateCameraParametersPreference();
 
         mCameraSettings.setRecordingHintEnabled(true);
 
@@ -1744,6 +1978,115 @@ public class VideoModule extends CameraModule
         updateAutoFocusMoveCallback();
     }
 
+    private void updateCameraParametersPreference() {
+        // some monkey tests can get here when shutting the app down
+        // make sure mCameraDevice is still valid, b/17580046
+        if (mCameraDevice == null) {
+            return;
+        }
+        setAutoWhiteBalanceLockIfSupported();
+        updateParametersWhiteBalance();
+        updateParametersColorEffect();
+        updateParametersAntiBanding();
+    }
+
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    private void setAutoWhiteBalanceLockIfSupported() {
+        if (mAwbLockSupported) {
+            mCameraSettings.setAutoWhiteBalanceLock(mFocusManager.getAeAwbLock());
+        }
+    }
+
+    private void updateParametersWhiteBalance() {
+        SettingsManager settingsManager = mActivity.getSettingsManager();
+        CameraCapabilities.Stringifier stringifier = mCameraCapabilities.getStringifier();
+        if (settingsManager.getBoolean(SettingsManager.SCOPE_GLOBAL,
+                                       Keys.KEY_WHITEBALANCE_ENABLED)) {
+            String value = settingsManager.getString(mAppController.getCameraScope(),
+                                                   Keys.KEY_WHITEBALANCE);
+            CameraCapabilities.WhiteBalance wb = stringifier.whiteBalanceFromString(value);
+            if (mCameraCapabilities.supports(wb)) {
+                mCameraSettings.setWhiteBalance(wb);
+            } else {
+                Log.w(TAG, "invalid whitebalance range: " + value);
+            }
+        } else {
+            if (DEBUG) Log.i(TAG, "default WhiteBalance");
+            setWhiteBalanceInternal(stringifier.stringify(CameraCapabilities.WhiteBalance.AUTO));
+        }
+    }
+
+    private void updateParametersColorEffect() {
+        SettingsManager settingsManager = mActivity.getSettingsManager();
+        String effect = settingsManager.getString(mAppController.getCameraScope(),
+                Keys.KEY_COLOR_EFFECT);
+        if (mSupportedColorEffects != null && mSupportedColorEffects.contains(effect)) {
+            mCameraSettings.setColorEffect(effect);
+        } else {
+            if (DEBUG) Log.i(TAG, "default color effect");
+            setColorEffectInternal(Camera.Parameters.EFFECT_NONE);
+        }
+    }
+
+    private void updateParametersAntiBanding() {
+        SettingsManager settingsManager = mActivity.getSettingsManager();
+        String antibanding = settingsManager.getString(SettingsManager.SCOPE_GLOBAL,
+                Keys.KEY_ANTIBANDING);
+        if (mSupportedAntiBandings != null && mSupportedAntiBandings.contains(antibanding)) {
+            mCameraSettings.setAntiBanding(antibanding);
+        } else {
+            if (DEBUG) Log.i(TAG, "default antibanding");
+            setAntiBandingInternal(Camera.Parameters.ANTIBANDING_AUTO);
+        }
+    }
+
+    public void setWhiteBalanceInternal(String value)  {
+        if (DEBUG) Log.i(TAG,"setWhiteBalance = " + value);
+        CameraCapabilities.Stringifier stringifier = mCameraCapabilities.getStringifier();
+        CameraCapabilities.WhiteBalance wb = stringifier.whiteBalanceFromString(value);
+        if (mCameraCapabilities.supports(wb)) {
+            mCameraSettings.setWhiteBalance(wb);
+            SettingsManager settingsManager = mActivity.getSettingsManager();
+            settingsManager.set(mAppController.getCameraScope(),
+                    Keys.KEY_WHITEBALANCE, value);
+        } else {
+            Log.w(TAG, "invalid whitebalance: " + value);
+        }
+    }
+
+    public void setColorEffectInternal(String value) {
+        if (DEBUG) Log.i(TAG,"setColorEffect = " + value);
+        if (mSupportedColorEffects != null && mSupportedColorEffects.contains(value)) {
+            mCameraSettings.setColorEffect(value);
+            SettingsManager settingsManager = mActivity.getSettingsManager();
+            settingsManager.set(mAppController.getCameraScope(),
+                    Keys.KEY_COLOR_EFFECT, value);
+        } else {
+            Log.w(TAG, "invalid color effect: " + value);
+        }
+    }
+
+    public void setAntiBandingInternal(String value) {
+        if (DEBUG) Log.i(TAG,"setAntiBanding = " + value);
+        if (mSupportedAntiBandings != null && mSupportedAntiBandings.contains(value)) {
+            mCameraSettings.setAntiBanding(value);
+            SettingsManager settingsManager = mActivity.getSettingsManager();
+            settingsManager.set(SettingsManager.SCOPE_GLOBAL,
+                    Keys.KEY_ANTIBANDING, value);
+        } else {
+            Log.w(TAG, "invalid AntiBanding: " + value);
+        }
+    }
+
+    private void cancelCountDown() {
+        if (mUI.isCountingDown()) {
+            // Cancel on-going countdown.
+            mUI.cancelCountDown();
+            mAppController.getCameraAppUI().transitionToCapture();
+            mAppController.getCameraAppUI().showModeOptions();
+        }
+    }
+
     @Override
     public void resume() {
         if (isVideoCaptureIntent()) {
@@ -1756,7 +2099,7 @@ public class VideoModule extends CameraModule
         mZoomValue = 1.0f;
 
         OrientationManager orientationManager = mAppController.getOrientationManager();
-        orientationManager.addOnOrientationChangeListener(this);
+        //orientationManager.addOnOrientationChangeListener(this);
         mUI.onOrientationChanged(orientationManager, orientationManager.getDeviceOrientation());
 
         showVideoSnapshotUI(false);
@@ -1774,19 +2117,27 @@ public class VideoModule extends CameraModule
             // preview area size change later in the initialization.
             mAppController.addPreviewAreaSizeChangedListener(mFocusManager);
         }
+        mAppController.addPreviewAreaSizeChangedListener(mUI);
 
         if (mPreviewing) {
             mOnResumeTime = SystemClock.uptimeMillis();
             mHandler.sendEmptyMessageDelayed(MSG_CHECK_DISPLAY_ROTATION, 100);
         }
         getServices().getMemoryManager().addListener(this);
+        
+        mCountdownSoundPlayer.loadSound(R.raw.timer_final_second);
+        mCountdownSoundPlayer.loadSound(R.raw.timer_increment);
     }
 
     @Override
     public void pause() {
         mPaused = true;
-
-        mAppController.getOrientationManager().removeOnOrientationChangeListener(this);
+        // Reset the focus first. Camera CTS does not guarantee that
+        // cancelAutoFocus is allowed after preview stops.
+        if (mCameraDevice != null && mFocusManager != null && !mFocusManager.isFocusCompleted()) {
+            mCameraDevice.cancelAutoFocus();
+        }
+        //mAppController.getOrientationManager().removeOnOrientationChangeListener(this);
 
         if (mFocusManager != null) {
             // If camera is not open when resume is called, focus manager will not
@@ -1797,12 +2148,17 @@ public class VideoModule extends CameraModule
         }
         if (mMediaRecorderRecording) {
             // Camera will be released in onStopVideoRecording.
+            checkRecordingTime();
             onStopVideoRecording();
         } else {
             stopPreview();
             closeCamera();
             releaseMediaRecorder();
         }
+
+        cancelCountDown();
+        mCountdownSoundPlayer.unloadSound(R.raw.timer_final_second);
+        mCountdownSoundPlayer.unloadSound(R.raw.timer_increment);
 
         closeVideoFileDescriptor();
 
@@ -1819,11 +2175,15 @@ public class VideoModule extends CameraModule
         mPreferenceRead = false;
         getServices().getMemoryManager().removeListener(this);
         mUI.onPause();
+
+        mAppController.removePreviewAreaSizeChangedListener(mUI);
+        SettingsManager settingsManager = mActivity.getSettingsManager();
+        settingsManager.removeListener(this);
     }
 
     @Override
     public void destroy() {
-
+        mCountdownSoundPlayer.release();
     }
 
     @Override
@@ -1840,6 +2200,12 @@ public class VideoModule extends CameraModule
         if (mPaused)  {
             return;
         }
+        cancelCountDown();
+        if (!mFocusManager.isFocusCompleted() && mCameraDevice != null) {
+            Log.i(TAG,"cancel autofocus before switch camera");
+            mCameraDevice.cancelAutoFocus();
+        }
+
         SettingsManager settingsManager = mActivity.getSettingsManager();
 
         Log.d(TAG, "Start to switch camera.");
@@ -1879,7 +2245,8 @@ public class VideoModule extends CameraModule
         if (mCameraSettings == null) {
             return;
         }
-        if (mCameraCapabilities.supports(CameraCapabilities.Feature.VIDEO_SNAPSHOT) &&
+        if ((mCameraCapabilities.supports(CameraCapabilities.Feature.VIDEO_SNAPSHOT)
+                || DebugPropertyHelper.isVideoSnapShotEnabled()) &&
                 !mIsVideoCaptureIntent) {
             if (enabled) {
                 mAppController.startFlashAnimation(false);
@@ -1901,12 +2268,14 @@ public class VideoModule extends CameraModule
         if (mCameraSettings.getCurrentFlashMode() == null) {
             return;
         }
+        boolean previewVisible = (mActivity.getPreviewVisibility()
+                == ModuleController.VISIBILITY_VISIBLE);
 
         SettingsManager settingsManager = mActivity.getSettingsManager();
 
         CameraCapabilities.Stringifier stringifier = mCameraCapabilities.getStringifier();
         CameraCapabilities.FlashMode flashMode;
-        if (enable) {
+        if (enable && previewVisible) {
             flashMode = stringifier
                 .flashModeFromString(settingsManager.getString(mAppController.getCameraScope(),
                                                                Keys.KEY_VIDEOCAMERA_FLASH_MODE));
@@ -2031,8 +2400,10 @@ public class VideoModule extends CameraModule
 
     @Override
     public void cancelAutoFocus() {
+        Log.i(TAG, "cancelAutoFocus");
         if (mCameraDevice != null) {
             mCameraDevice.cancelAutoFocus();
+            updateCameraParametersPreference();
             setFocusParameters();
         }
     }
@@ -2058,5 +2429,17 @@ public class VideoModule extends CameraModule
             updateFocusParameters();
             mCameraDevice.applySettings(mCameraSettings);
         }
+    }
+
+    @Override
+    public void onShutterButtonLongClickRelease() {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void onNonDecorWindowSizeChanged() {
+        // TODO Auto-generated method stub
+        
     }
 }

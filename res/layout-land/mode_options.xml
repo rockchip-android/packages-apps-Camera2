@@ -24,6 +24,47 @@
     android:visibility="invisible"
     android:background="#00000000" >
     <com.android.camera.ui.RadioOptions
+        android:id="@+id/mode_options_whitebalance"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@null"
+        camera:selected_drawable="@drawable/button_background_selected_photo"
+        android:visibility="invisible" >
+        <ImageButton
+            android:id="@+id/wb_cloudy"
+            style="@style/ModeOption"
+            android:tag="cloudy-daylight"
+            android:background="@null"
+            android:src="@drawable/ic_wb_cloudy" />
+        <ImageButton
+            android:id="@+id/wb_fluorescent"
+            style="@style/ModeOption"
+            android:tag="fluorescent"
+            android:background="@null"
+            android:src="@drawable/ic_wb_fluorescent" />
+        <ImageButton
+            android:id="@+id/wb_auto"
+            style="@style/ModeOption"
+            android:tag="auto"
+            android:background="@null"
+            android:src="@drawable/ic_wb_auto" />
+        <ImageButton
+            android:id="@+id/wb_incandescent"
+            style="@style/ModeOption"
+            android:tag="incandescent"
+            android:background="@null"
+            android:src="@drawable/ic_wb_incandescent" />
+        <ImageButton
+            android:id="@+id/wb_sunlight"
+            style="@style/ModeOption"
+            android:tag="daylight"
+            android:background="@null"
+            android:src="@drawable/ic_wb_sunlight" />
+    </com.android.camera.ui.RadioOptions>
+
+    <com.android.camera.ui.RadioOptions
         android:id="@+id/mode_options_exposure"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -117,11 +158,25 @@
             style="@style/ModeOption"
             camera:imageIds="@array/countdown_duration_icons"
             camera:contentDescriptionIds="@array/countdown_duration_descriptions" />
+        <com.android.camera.MultiToggleImageButton
+            android:id="@+id/zsl_toggle_button"
+            style="@style/ModeOption"
+            camera:imageIds="@array/zsl_icons"
+            camera:contentDescriptionIds="@array/zsl_descriptions" />
+        <com.android.camera.MultiToggleImageButton
+            android:id="@+id/smile_shutter_toggle_button"
+            style="@style/ModeOption"
+            camera:imageIds="@array/smile_shutter_icons"
+            camera:contentDescriptionIds="@array/smile_shutter_descriptions" />
         <ImageButton
             android:id="@+id/exposure_button"
             style="@style/ModeOption"
             android:background="@null"
             android:src="@drawable/ic_exposure"
             android:contentDescription="@string/manual_exposure_compensation_desc" />
+        <ImageButton
+            android:id="@+id/wb_button"
+            style="@style/ModeOption"
+            android:src="@drawable/ic_whitebalance_auto" />
     </com.android.camera.ui.TopRightWeightedLayout>
 </com.android.camera.widget.ModeOptions>

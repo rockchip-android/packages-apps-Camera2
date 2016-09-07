@@ -16,20 +16,29 @@
 
 package com.android.camera;
 
+import java.util.List;
+import java.util.Set;
+
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 
 import com.android.camera.app.AppController;
 import com.android.camera.app.CameraAppUI;
+import com.android.camera.debug.Log;
 import com.android.camera.settings.Keys;
 import com.android.camera.settings.SettingsManager;
+import com.android.camera.ui.AverageRadioOptions;
+import com.android.camera.ui.HorizontalRadioOptions;
 import com.android.camera.ui.RadioOptions;
+import com.android.camera.ui.TopRightWeightedLayout;
 import com.android.camera.util.PhotoSphereHelper;
 import com.android.camera.widget.ModeOptions;
+import com.android.ex.camera2.portability.CameraCapabilities;
 import com.android.camera2.R;
 
 /**
@@ -50,6 +59,11 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
     public static final int BUTTON_GRID_LINES = 10;
     public static final int BUTTON_EXPOSURE_COMPENSATION = 11;
     public static final int BUTTON_COUNTDOWN = 12;
+    public static final int BUTTON_WHITEBALANCE = 13;
+    public static final int BUTTON_SCENE = 14;
+    public static final int BUTTON_COLOR = 15;
+    public static final int BUTTON_ZSL = 16;
+    public static final int BUTTON_SMILE_SHUTTER = 17;
 
     /** For two state MultiToggleImageButtons, the off index. */
     public static final int OFF = 0;
@@ -67,6 +81,8 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
     private MultiToggleImageButton mButtonHdr;
     private MultiToggleImageButton mButtonGridlines;
     private MultiToggleImageButton mButtonCountdown;
+    private MultiToggleImageButton mButtonZsl;
+    private MultiToggleImageButton mButtonSmileShutter;
 
     /** Intent UI buttons. */
     private ImageButton mButtonCancel;
@@ -84,6 +100,62 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
     private View mModeOptionsButtons;
     private ModeOptions mModeOptions;
 
+    private ImageButton mExposureN2OfScreen;
+    private ImageButton mExposureN1OfScreen;
+    private ImageButton mExposure0OfScreen;
+    private ImageButton mExposureP1OfScreen;
+    private ImageButton mExposureP2OfScreen;
+    private HorizontalRadioOptions mModeOptionsExposureOfScreen;
+
+    private ImageButton mContrastN1;
+    private ImageButton mContrast0;
+    private ImageButton mContrastP1;
+    private HorizontalRadioOptions mModeOptionsContrast;
+
+    private ImageButton mSaturationN1;
+    private ImageButton mSaturation0;
+    private ImageButton mSaturationP1;
+    private HorizontalRadioOptions mModeOptionsSaturation;
+    
+    private ImageButton mSharpnessN1;
+    private ImageButton mSharpness0;
+    private ImageButton mSharpnessP1;;
+    private HorizontalRadioOptions mModeOptionsSharpness;
+
+    private ImageButton mBrightnessN1;
+    private ImageButton mBrightness0;
+    private ImageButton mBrightnessP1;
+    private HorizontalRadioOptions mModeOptionsBrightness;
+
+    private ImageButton mHueN1;
+    private ImageButton mHue0;
+    private ImageButton mHueP1;
+    private HorizontalRadioOptions mModeOptionsHue;
+
+    private ImageButton mButtonWhiteBalance;
+    private ImageButton mWbCloudy;
+    private ImageButton mWbFluorescent;
+    private ImageButton mWbAuto;
+    private ImageButton mWbIncandescent;
+    private ImageButton mWbSunlight;
+    private RadioOptions mModeOptionsWhiteBalance;
+
+    private ImageButton mButtonColor;
+    private FrameLayout mColorNone;
+    private FrameLayout mColorMono;
+    private FrameLayout mColorNegative;
+    private FrameLayout mColorSepia;
+    private AverageRadioOptions mModeOptionsColor;
+
+    private ImageButton mButtonScene;
+    private LinearLayout mSceneAuto;
+    private LinearLayout mScenePortrait;
+    private LinearLayout mSceneLandscape;
+    private LinearLayout mSceneNight;
+    private LinearLayout mSceneSports;
+    private LinearLayout mSceneBarcode;
+    private AverageRadioOptions mModeOptionsScene; 
+
     private int mMinExposureCompensation;
     private int mMaxExposureCompensation;
     private float mExposureCompensationStep;
@@ -99,6 +171,10 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
     private boolean mIsCameraButtonBlocked;
 
     private final AppController mAppController;
+
+    private CameraCapabilities mCameraCapabilities;
+
+    private boolean mButtonLoaded = false;
 
     /**
      * Get a new global ButtonManager.
@@ -120,6 +196,7 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
      */
     public void load(View root) {
         getButtonsReferences(root);
+        mButtonLoaded = true;
     }
 
     /**
@@ -144,6 +221,18 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
     public void setListener(ButtonStatusListener listener) {
         mListener = listener;
     }
+    
+    public void setCameraCapabilities(CameraCapabilities cameraCapabilities) {
+        mCameraCapabilities = cameraCapabilities;
+    }
+
+    public CameraCapabilities getCameraCapabilities() {
+        return mCameraCapabilities;
+    }
+
+    public void setScreenEffectOptionsEnabled(boolean enable) {
+        mModeOptions.setScreenEffectOptionsEnabled(enable);
+    }
 
     /**
      * Gets references to all known buttons.
@@ -163,6 +252,10 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
             = (ImageButton) root.findViewById(R.id.done_button);
         mButtonRetake
             = (ImageButton) root.findViewById(R.id.retake_button);
+        mButtonZsl
+            = (MultiToggleImageButton) root.findViewById(R.id.zsl_toggle_button);
+        mButtonSmileShutter
+            = (MultiToggleImageButton) root.findViewById(R.id.smile_shutter_toggle_button);
 
         mButtonExposureCompensation =
             (ImageButton) root.findViewById(R.id.exposure_button);
@@ -177,10 +270,67 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
         mModeOptions = (ModeOptions) root.findViewById(R.id.mode_options);
 
         mButtonCountdown = (MultiToggleImageButton) root.findViewById(R.id.countdown_toggle_button);
+
+        mExposureN2OfScreen = (ImageButton) root.findViewById(R.id.exposure_n2_of_screen);
+        mExposureN1OfScreen = (ImageButton) root.findViewById(R.id.exposure_n1_of_screen);
+        mExposure0OfScreen = (ImageButton) root.findViewById(R.id.exposure_0_of_screen);
+        mExposureP1OfScreen = (ImageButton) root.findViewById(R.id.exposure_p1_of_screen);
+        mExposureP2OfScreen = (ImageButton) root.findViewById(R.id.exposure_p2_of_screen);
+        mModeOptionsExposureOfScreen = (HorizontalRadioOptions) root.findViewById(R.id.mode_options_exposure_of_screen);
+
+        mSaturationN1 = (ImageButton) root.findViewById(R.id.saturation_n1);
+        mSaturation0 = (ImageButton) root.findViewById(R.id.saturation_0);
+        mSaturationP1 = (ImageButton) root.findViewById(R.id.saturation_p1);
+        mModeOptionsSaturation = (HorizontalRadioOptions) root.findViewById(R.id.mode_options_saturation);
+
+        mContrastN1 = (ImageButton) root.findViewById(R.id.contrast_n1);
+        mContrast0 = (ImageButton) root.findViewById(R.id.contrast_0);
+        mContrastP1 = (ImageButton) root.findViewById(R.id.contrast_p1);
+        mModeOptionsContrast = (HorizontalRadioOptions) root.findViewById(R.id.mode_options_contrast);
+
+        mSharpnessN1 = (ImageButton) root.findViewById(R.id.sharpness_n1);
+        mSharpness0 = (ImageButton) root.findViewById(R.id.sharpness_0);
+        mSharpnessP1 = (ImageButton) root.findViewById(R.id.sharpness_p1);
+        mModeOptionsSharpness = (HorizontalRadioOptions) root.findViewById(R.id.mode_options_sharpness);
+
+        mBrightnessN1 = (ImageButton) root.findViewById(R.id.brightness_n1);
+        mBrightness0 = (ImageButton) root.findViewById(R.id.brightness_0);
+        mBrightnessP1 = (ImageButton) root.findViewById(R.id.brightness_p1);
+        mModeOptionsBrightness = (HorizontalRadioOptions) root.findViewById(R.id.mode_options_brightness);
+
+        mHueN1 = (ImageButton) root.findViewById(R.id.hue_n1);
+        mHue0 = (ImageButton) root.findViewById(R.id.hue_0);
+        mHueP1 = (ImageButton) root.findViewById(R.id.hue_p1);
+        mModeOptionsHue = (HorizontalRadioOptions) root.findViewById(R.id.mode_options_hue);
+
+        mButtonWhiteBalance = (ImageButton) root.findViewById(R.id.wb_button);
+        mWbCloudy = (ImageButton) root.findViewById(R.id.wb_cloudy);
+        mWbFluorescent = (ImageButton) root.findViewById(R.id.wb_fluorescent);
+        mWbAuto = (ImageButton) root.findViewById(R.id.wb_auto);
+        mWbIncandescent = (ImageButton) root.findViewById(R.id.wb_incandescent);
+        mWbSunlight = (ImageButton) root.findViewById(R.id.wb_sunlight);
+        mModeOptionsWhiteBalance = (RadioOptions) root.findViewById(R.id.mode_options_whitebalance);
+
+        mButtonScene = (ImageButton) root.findViewById(R.id.scene_button);
+        mSceneAuto = (LinearLayout) root.findViewById(R.id.scene_auto);
+        mScenePortrait = (LinearLayout) root.findViewById(R.id.scene_portrait);
+        mSceneLandscape = (LinearLayout) root.findViewById(R.id.scene_landscape);
+        mSceneNight = (LinearLayout) root.findViewById(R.id.scene_night);
+        mSceneSports = (LinearLayout) root.findViewById(R.id.scene_sports);
+        mSceneBarcode = (LinearLayout) root.findViewById(R.id.scene_barcode);
+        mModeOptionsScene = (AverageRadioOptions) root.findViewById(R.id.scene_options);
+
+        mButtonColor = (ImageButton) root.findViewById(R.id.color_button);
+        mColorNone = (FrameLayout) root.findViewById(R.id.color_none);
+        mColorMono = (FrameLayout) root.findViewById(R.id.color_mono);
+        mColorNegative = (FrameLayout) root.findViewById(R.id.color_negative);
+        mColorSepia = (FrameLayout) root.findViewById(R.id.color_sepia);
+        mModeOptionsColor = (AverageRadioOptions) root.findViewById(R.id.color_options);
     }
 
     @Override
     public void onSettingChanged(SettingsManager settingsManager, String key) {
+        if (!mButtonLoaded) return;
         MultiToggleImageButton button = null;
         int index = 0;
 
@@ -220,6 +370,30 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
             index = mSettingsManager.getIndexOfCurrentValue(SettingsManager.SCOPE_GLOBAL,
                                                             Keys.KEY_COUNTDOWN_DURATION);
             button = getButtonOrError(BUTTON_COUNTDOWN);
+        } else if (key.equals(Keys.KEY_WHITEBALANCE)) {
+            updateWhiteBalanceButtons();
+        } else if (key.equals(Keys.KEY_SCENE_MODE)) {
+            updateSceneButtons();
+        } else if (key.equals(Keys.KEY_COLOR_EFFECT)) {
+            updateColorEffectButtons();
+        } else if (key.equals(Keys.KEY_BURST_CAPTURE_ON)) {
+            index = mSettingsManager.getIndexOfCurrentValue(SettingsManager.SCOPE_GLOBAL,
+                    Keys.KEY_BURST_CAPTURE_ON);
+            button = getButtonOrError(BUTTON_ZSL);
+        } else if (key.equals(Keys.KEY_SMILE_SHUTTER_ON)) {
+            index = mSettingsManager.getIndexOfCurrentValue(SettingsManager.SCOPE_GLOBAL,
+                    Keys.KEY_SMILE_SHUTTER_ON);
+            button = getButtonOrError(BUTTON_SMILE_SHUTTER);
+        } else if (key.equals(Keys.KEY_SATURATION)) {
+            updateSaturationButtons();
+        } else if (key.equals(Keys.KEY_CONTRAST)) {
+            updateContrastButtons();
+        } else if (key.equals(Keys.KEY_SHARPNESS)) {
+            updateSharpnessButtons();
+        } else if (key.equals(Keys.KEY_BRIGHTNESS)) {
+            updateBrightnessButtons();
+        } else if (key.equals(Keys.KEY_HUE)) {
+            updateHueButtons();
         }
 
         if (button != null && button.getState() != index) {
@@ -284,6 +458,16 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
                     throw new IllegalStateException("Countdown button could not be found.");
                 }
                 return mButtonCountdown;
+            case BUTTON_ZSL:
+                if (mButtonZsl == null) {
+                    throw new IllegalStateException("Zsl button could not be found.");
+                }
+                return mButtonZsl;
+            case BUTTON_SMILE_SHUTTER:
+                if (mButtonSmileShutter == null) {
+                    throw new IllegalStateException("Smile Shutter button could not be found.");
+                }
+                return mButtonSmileShutter;
             default:
                 throw new IllegalArgumentException("button not known by id=" + buttonId);
         }
@@ -321,6 +505,21 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
                     throw new IllegalStateException("Exposure Compensation button could not be found.");
                 }
                 return mButtonExposureCompensation;
+            case BUTTON_WHITEBALANCE:
+                if (mButtonWhiteBalance == null) {
+                    throw new IllegalStateException("WhiteBalance button could not be found.");
+                }
+                return mButtonWhiteBalance;
+            case BUTTON_SCENE:
+                if (mButtonScene == null) {
+                    throw new IllegalStateException("Scene button could not be found.");
+                }
+                return mButtonScene;
+            case BUTTON_COLOR:
+                if (mButtonColor == null) {
+                    throw new IllegalStateException("Color button could not be found.");
+                }
+                return mButtonColor;
             default:
                 throw new IllegalArgumentException("button not known by id=" + buttonId);
         }
@@ -372,6 +571,12 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
             case BUTTON_COUNTDOWN:
                 initializeCountdownButton(button, cb, preCb, R.array.countdown_duration_icons);
                 break;
+            case BUTTON_ZSL:
+                initializeZslButton(button, cb, R.array.zsl_icons);
+                break;
+            case BUTTON_SMILE_SHUTTER:
+                initializeSmileShutterButton(button, cb, R.array.smile_shutter_icons);
+                break;
             default:
                 throw new IllegalArgumentException("button not known by id=" + buttonId);
         }
@@ -388,7 +593,8 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
     public void initializePushButton(int buttonId, View.OnClickListener cb,
             int imageId, int contentDescriptionId) {
         ImageButton button = getImageButtonOrError(buttonId);
-        button.setOnClickListener(cb);
+        if (cb != null)
+            button.setOnClickListener(cb);
         if (imageId != NO_RESOURCE) {
             button.setImageResource(imageId);
         }
@@ -410,6 +616,16 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
             if (mListener != null) {
                 mListener.onButtonVisibilityChanged(this, buttonId);
             }
+        }
+
+        
+        switch (buttonId) {
+        case BUTTON_WHITEBALANCE:
+            initializeWhiteBalanceButton(button);
+            break;
+
+        default:
+            break;
         }
     }
 
@@ -443,11 +659,11 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
      * Sets a button in its disabled (greyed out) state.
      */
     public void disableButton(int buttonId) {
-        View button;
-        if (buttonId == BUTTON_EXPOSURE_COMPENSATION) {
-            button = getImageButtonOrError(buttonId);
-        } else {
+        ImageButton button;
+        try {
             button = getButtonOrError(buttonId);
+        } catch (IllegalArgumentException e) {
+            button = getImageButtonOrError(buttonId);
         }
         // HDR and HDR+ buttons share the same button object,
         // but change actual image icons at runtime.
@@ -491,10 +707,10 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
         // Manual exposure uses a regular image button instead of a
         // MultiToggleImageButton, so it requires special handling.
         // TODO: Redesign ButtonManager's button getter methods into one method.
-        if (buttonId == BUTTON_EXPOSURE_COMPENSATION) {
-            button = getImageButtonOrError(buttonId);
-        } else {
+        try {
             button = getButtonOrError(buttonId);
+        } catch (IllegalArgumentException e) {
+            button = getImageButtonOrError(buttonId);
         }
         if (!button.isEnabled()) {
             button.setEnabled(true);
@@ -540,7 +756,11 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
             button = getImageButtonOrError(buttonId);
         }
         if (button.getVisibility() == View.VISIBLE) {
-            button.setVisibility(View.GONE);
+            if (buttonId == ButtonManager.BUTTON_SCENE
+                    || buttonId == ButtonManager.BUTTON_COLOR)
+                button.setVisibility(View.INVISIBLE);
+            else
+                button.setVisibility(View.GONE);
             if (mListener != null) {
                 mListener.onButtonVisibilityChanged(this, buttonId);
             }
@@ -565,6 +785,117 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
         }
     }
 
+    public void hideModeOptions(int optionId) {
+        View parent = null;
+        switch (optionId) {
+        case R.id.mode_options_exposure_of_screen:
+            if (mModeOptionsExposureOfScreen != null) {
+                parent = (View) mModeOptionsExposureOfScreen.getParent();
+                if (parent.getVisibility() == View.VISIBLE)
+                    parent.setVisibility(View.GONE);
+            }
+            break;
+
+        case R.id.mode_options_saturation:
+            if (mModeOptionsSaturation != null) {
+                parent = (View) mModeOptionsSaturation.getParent();
+                if (parent.getVisibility() == View.VISIBLE)
+                    parent.setVisibility(View.GONE);
+            }
+            break;
+
+        case R.id.mode_options_contrast:
+            if (mModeOptionsContrast != null) {
+                parent = (View) mModeOptionsContrast.getParent();
+                if (parent.getVisibility() == View.VISIBLE)
+                    parent.setVisibility(View.GONE);
+            }
+            break;
+
+        case R.id.mode_options_sharpness:
+            if (mModeOptionsSharpness != null) {
+                parent = (View) mModeOptionsSharpness.getParent();
+                if (parent.getVisibility() == View.VISIBLE)
+                    parent.setVisibility(View.GONE);
+            }
+            break;
+
+        case R.id.mode_options_brightness:
+            if (mModeOptionsBrightness != null) {
+                parent = (View) mModeOptionsBrightness.getParent();
+                if (parent.getVisibility() == View.VISIBLE)
+                    parent.setVisibility(View.GONE);
+            }
+            break;
+
+        case R.id.mode_options_hue:
+            if (mModeOptionsHue != null) {
+                parent = (View) mModeOptionsHue.getParent();
+                if (parent.getVisibility() == View.VISIBLE)
+                    parent.setVisibility(View.GONE);
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    public void showModeOptions(int optionId) {
+        View parent = null;
+        switch (optionId) {
+        case R.id.mode_options_exposure_of_screen:
+            if (mModeOptionsExposureOfScreen != null) {
+                parent = (View) mModeOptionsExposureOfScreen.getParent();
+                if (parent.getVisibility() != View.VISIBLE)
+                    parent.setVisibility(View.VISIBLE);
+            }
+            break;
+
+        case R.id.mode_options_saturation:
+            if (mModeOptionsSaturation != null) {
+                parent = (View) mModeOptionsSaturation.getParent();
+                if (parent.getVisibility() != View.VISIBLE)
+                    parent.setVisibility(View.VISIBLE);
+            }
+            break;
+
+        case R.id.mode_options_contrast:
+            if (mModeOptionsContrast != null) {
+                parent = (View) mModeOptionsContrast.getParent();
+                if (parent.getVisibility() != View.VISIBLE)
+                    parent.setVisibility(View.VISIBLE);
+            }
+            break;
+
+        case R.id.mode_options_sharpness:
+            if (mModeOptionsSharpness != null) {
+                parent = (View) mModeOptionsSharpness.getParent();
+                if (parent.getVisibility() != View.VISIBLE)
+                    parent.setVisibility(View.VISIBLE);
+            }
+            break;
+
+        case R.id.mode_options_brightness:
+            if (mModeOptionsBrightness != null) {
+                parent = (View) mModeOptionsBrightness.getParent();
+                if (parent.getVisibility() != View.VISIBLE)
+                    parent.setVisibility(View.VISIBLE);
+            }
+            break;
+
+        case R.id.mode_options_hue:
+            if (mModeOptionsHue != null) {
+                parent = (View) mModeOptionsHue.getParent();
+                if (parent.getVisibility() != View.VISIBLE)
+                    parent.setVisibility(View.VISIBLE);
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
 
     public void setToInitialState() {
         mModeOptions.setMainBar(ModeOptions.BAR_STANDARD);
@@ -591,6 +922,164 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
         }
     }
 
+    public void setWhiteBalanceCallback(final CameraAppUI.BottomBarUISpec
+            .WhiteBalanceSetCallback cb) {
+        if (cb == null) {
+            mModeOptionsWhiteBalance.setOnOptionClickListener(null);
+        } else {
+            mModeOptionsWhiteBalance
+            .setOnOptionClickListener(new RadioOptions.OnOptionClickListener() {
+                @Override
+                public void onOptionClicked(View v) {
+                    String value = (String) v.getTag();
+                    cb.setWhiteBalance(value);
+                    if (mCameraCapabilities.getStringifier().stringify(CameraCapabilities.WhiteBalance.CLOUDY_DAYLIGHT)
+                            .equals(value)) {
+                        mButtonWhiteBalance.setImageResource(R.drawable.ic_whitebalance_cloudy);
+                    } else if (mCameraCapabilities.getStringifier().stringify(CameraCapabilities.WhiteBalance.INCANDESCENT)
+                            .equals(value)) {
+                        mButtonWhiteBalance.setImageResource(R.drawable.ic_whitebalance_incandescent);
+                    } else if (mCameraCapabilities.getStringifier().stringify(CameraCapabilities.WhiteBalance.FLUORESCENT)
+                            .equals(value)) {
+                        mButtonWhiteBalance.setImageResource(R.drawable.ic_whitebalance_fluorescent);
+                    } else if (mCameraCapabilities.getStringifier().stringify(CameraCapabilities.WhiteBalance.DAYLIGHT)
+                            .equals(value)) {
+                        mButtonWhiteBalance.setImageResource(R.drawable.ic_whitebalance_daylight);
+                    } else if (mCameraCapabilities.getStringifier().stringify(CameraCapabilities.WhiteBalance.AUTO)
+                            .equals(value)) {
+                        mButtonWhiteBalance.setImageResource(R.drawable.ic_whitebalance_auto);
+                    }
+                }
+            });
+        }
+    }
+
+    public void setSceneCallBack(final CameraAppUI.BottomBarUISpec.SceneSetCallback cb) {
+        if (cb == null) {
+            mModeOptionsScene.setOnOptionClickListener(null);
+        } else {
+            mModeOptionsScene.setOnOptionClickListener(new AverageRadioOptions.OnOptionClickListener() {
+
+                @Override
+                public void onOptionClicked(View v) {
+                    // TODO Auto-generated method stub
+                    cb.setScene((String) v.getTag());
+                }
+            });
+        }
+    }
+
+    public void setColorEffectCallBack(final CameraAppUI.BottomBarUISpec.ColorEffectSetCallback cb) {
+        if (cb == null) {
+            mModeOptionsColor.setOnOptionClickListener(null);
+        } else {
+            mModeOptionsColor.setOnOptionClickListener(new AverageRadioOptions.OnOptionClickListener() {
+
+                @Override
+                public void onOptionClicked(View v) {
+                    // TODO Auto-generated method stub
+                    cb.setColorEffect((String) v.getTag());
+                }
+            });
+        }
+    }
+
+    public void setExposureCompensationOfScreenCallback(final CameraAppUI.BottomBarUISpec
+            .ExposureCompensationSetCallback cb) {
+        if (cb == null) {
+            mModeOptionsExposureOfScreen.setOnOptionClickListener(null);
+        } else {
+            mModeOptionsExposureOfScreen
+            .setOnOptionClickListener(new HorizontalRadioOptions.OnOptionClickListener() {
+                @Override
+                public void onOptionClicked(View v) {
+                    int comp = Integer.parseInt((String)(v.getTag()));
+
+                    if (mExposureCompensationStep != 0.0f) {
+                        int compValue =
+                                Math.round(comp / mExposureCompensationStep);
+                        cb.setExposure(compValue);
+                    }
+                }
+            });
+        }
+    }
+
+    public void setSaturationCallBack(final CameraAppUI.BottomBarUISpec
+            .SaturationSetCallback cb) {
+        if (cb == null) {
+            mModeOptionsSaturation.setOnOptionClickListener(null);
+        } else {
+            mModeOptionsSaturation
+            .setOnOptionClickListener(new HorizontalRadioOptions.OnOptionClickListener() {
+                @Override
+                public void onOptionClicked(View v) {
+                    cb.setSaturation((String) v.getTag());
+                }
+            });
+        }
+    }
+
+    public void setContrastCallBack(final CameraAppUI.BottomBarUISpec
+            .ContrastSetCallback cb) {
+        if (cb == null) {
+            mModeOptionsContrast.setOnOptionClickListener(null);
+        } else {
+            mModeOptionsContrast
+            .setOnOptionClickListener(new HorizontalRadioOptions.OnOptionClickListener() {
+                @Override
+                public void onOptionClicked(View v) {
+                    cb.setContrast((String) v.getTag());
+                }
+            });
+        }
+    }
+
+    public void setSharpnessCallBack(final CameraAppUI.BottomBarUISpec
+            .SharpnessSetCallback cb) {
+        if (cb == null) {
+            mModeOptionsSharpness.setOnOptionClickListener(null);
+        } else {
+            mModeOptionsSharpness
+            .setOnOptionClickListener(new HorizontalRadioOptions.OnOptionClickListener() {
+                @Override
+                public void onOptionClicked(View v) {
+                    cb.setSharpness((String) v.getTag());
+                }
+            });
+        }
+    }
+
+    public void setBrightnessCallBack(final CameraAppUI.BottomBarUISpec
+            .BrightnessSetCallback cb) {
+        if (cb == null) {
+            mModeOptionsBrightness.setOnOptionClickListener(null);
+        } else {
+            mModeOptionsBrightness
+            .setOnOptionClickListener(new HorizontalRadioOptions.OnOptionClickListener() {
+                @Override
+                public void onOptionClicked(View v) {
+                    cb.setBrightness((String) v.getTag());
+                }
+            });
+        }
+    }
+
+    public void setHueCallBack(final CameraAppUI.BottomBarUISpec
+            .HueSetCallback cb) {
+        if (cb == null) {
+            mModeOptionsHue.setOnOptionClickListener(null);
+        } else {
+            mModeOptionsHue
+            .setOnOptionClickListener(new HorizontalRadioOptions.OnOptionClickListener() {
+                @Override
+                public void onOptionClicked(View v) {
+                    cb.setHue((String) v.getTag());
+                }
+            });
+        }
+    }
+
     /**
      * Set the exposure compensation parameters supported by the current camera mode.
      * @param min Minimum exposure compensation value.
@@ -609,6 +1098,90 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
         setVisible(mExposureP2, (Math.round(max * step) >= 2));
 
         updateExposureButtons();
+    }
+
+    public void setWhiteBalanceParameters(Set<CameraCapabilities.WhiteBalance> sets) {
+        setVisible(mWbCloudy, sets.contains(CameraCapabilities.WhiteBalance.CLOUDY_DAYLIGHT));
+        setVisible(mWbSunlight, sets.contains(CameraCapabilities.WhiteBalance.DAYLIGHT));
+        setVisible(mWbAuto, sets.contains(CameraCapabilities.WhiteBalance.AUTO));
+        setVisible(mWbFluorescent, sets.contains(CameraCapabilities.WhiteBalance.FLUORESCENT));
+        setVisible(mWbIncandescent, sets.contains(CameraCapabilities.WhiteBalance.INCANDESCENT));
+
+        updateWhiteBalanceButtons();
+    }
+
+    public void setSceneParameters(Set<CameraCapabilities.SceneMode> sets) {
+        setVisible(mSceneAuto, sets.contains(CameraCapabilities.SceneMode.AUTO));
+        setVisible(mScenePortrait, sets.contains(CameraCapabilities.SceneMode.PORTRAIT));
+        setVisible(mSceneLandscape, sets.contains(CameraCapabilities.SceneMode.LANDSCAPE));
+        setVisible(mSceneNight, sets.contains(CameraCapabilities.SceneMode.NIGHT));
+        setVisible(mSceneSports, sets.contains(CameraCapabilities.SceneMode.SPORTS));
+        setVisible(mSceneBarcode, sets.contains(CameraCapabilities.SceneMode.BARCODE));
+
+        updateSceneButtons();
+    }
+
+    public void setColorEffectParameters(List<String> lists) {
+        setVisible(mColorNone, lists.contains(android.hardware.Camera.Parameters.EFFECT_NONE));
+        setVisible(mColorMono, lists.contains(android.hardware.Camera.Parameters.EFFECT_MONO));
+        setVisible(mColorNegative, lists.contains(android.hardware.Camera.Parameters.EFFECT_NEGATIVE));
+        setVisible(mColorSepia, lists.contains(android.hardware.Camera.Parameters.EFFECT_SEPIA));
+
+        updateColorEffectButtons();
+    }
+
+    /**
+     * Set the exposure compensation parameters supported by the current camera mode.
+     * @param min Minimum exposure compensation value.
+     * @param max Maximum exposure compensation value.
+     * @param step Expsoure compensation step value.
+     */
+    public void setExposureCompensationOfScreenParameters(int min, int max, float step) {
+        mMaxExposureCompensation = max;
+        mMinExposureCompensation = min;
+        mExposureCompensationStep = step;
+
+        setVisible(mExposureN2OfScreen, (Math.round(min * step) <= -2));
+        setVisible(mExposureN1OfScreen, (Math.round(min * step) <= -1));
+        setVisible(mExposureP1OfScreen, (Math.round(max * step) >= 1));
+        setVisible(mExposureP2OfScreen, (Math.round(max * step) >= 2));
+
+        updateExposureButtonsOfScreen();
+    }
+
+    public void setSaturationParameters(List<String> lists) {
+        setVisible(mSaturationN1, lists.contains("low"));
+        setVisible(mSaturationP1, lists.contains("high"));
+
+        updateSaturationButtons();
+    }
+
+    public void setContrastParameters(List<String> lists) {
+        setVisible(mContrastN1, lists.contains("soft"));
+        setVisible(mContrastP1, lists.contains("hard"));
+
+        updateContrastButtons();
+    }
+
+    public void setSharpnessParameters(List<String> lists) {
+        setVisible(mSharpnessN1, lists.contains("low"));
+        setVisible(mSharpnessP1, lists.contains("high"));
+
+        updateSharpnessButtons();
+    }
+
+    public void setBrightnessParameters(List<String> lists) {
+        setVisible(mBrightnessN1, lists.contains("low"));
+        setVisible(mBrightnessP1, lists.contains("high"));
+
+        updateBrightnessButtons();
+    }
+
+    public void setHueParameters(List<String> lists) {
+        setVisible(mHueN1, lists.contains("low"));
+        setVisible(mHueP1, lists.contains("high"));
+
+        updateHueButtons();
     }
 
     private static void setVisible(View v, boolean visible) {
@@ -831,6 +1404,17 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
         button.setOnStateChangeListener(new MultiToggleImageButton.OnStateChangeListener() {
             @Override
             public void stateChanged(View view, int state) {
+                if (state == 1) {
+                    Log.i(new Log.Tag("ButtonManager"), "hdrcallback set scene hdr");
+                    mSettingsManager.set(mAppController.getCameraScope(), Keys.KEY_SCENE_MODE,
+                            mCameraCapabilities.getStringifier().stringify(
+                                    CameraCapabilities.SceneMode.HDR));
+                } else if (state == 0){
+                    Log.i(new Log.Tag("ButtonManager"), "hdrcallback set scene auto");
+                    mSettingsManager.set(mAppController.getCameraScope(), Keys.KEY_SCENE_MODE,
+                            mCameraCapabilities.getStringifier().stringify(
+                                    CameraCapabilities.SceneMode.AUTO));
+                }
                 mSettingsManager.setValueByIndex(SettingsManager.SCOPE_GLOBAL,
                                                  Keys.KEY_CAMERA_HDR, state);
                 if (cb != null) {
@@ -874,6 +1458,28 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
         });
     }
 
+    private void initializeWhiteBalanceButton(ImageButton button) {
+        String value = mSettingsManager.getString(
+                mAppController.getCameraScope(), Keys.KEY_WHITEBALANCE);
+        CameraCapabilities.Stringifier stringifier = mCameraCapabilities.getStringifier();
+        if (stringifier.stringify(CameraCapabilities.WhiteBalance.CLOUDY_DAYLIGHT)
+                .equals(value)) {
+            button.setImageResource(R.drawable.ic_whitebalance_cloudy);
+        } else if (stringifier.stringify(CameraCapabilities.WhiteBalance.INCANDESCENT)
+                .equals(value)) {
+            button.setImageResource(R.drawable.ic_whitebalance_incandescent);
+        } else if (stringifier.stringify(CameraCapabilities.WhiteBalance.FLUORESCENT)
+                .equals(value)) {
+            button.setImageResource(R.drawable.ic_whitebalance_fluorescent);
+        } else if (stringifier.stringify(CameraCapabilities.WhiteBalance.DAYLIGHT)
+                .equals(value)) {
+            button.setImageResource(R.drawable.ic_whitebalance_daylight);
+        } else if (stringifier.stringify(CameraCapabilities.WhiteBalance.AUTO)
+                .equals(value)) {
+            button.setImageResource(R.drawable.ic_whitebalance_auto);
+        }
+    }
+
     /**
      * Update the visual state of the manual exposure buttons
      */
@@ -884,6 +1490,71 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
             int comp = Math.round(compValue * mExposureCompensationStep);
             mModeOptionsExposure.setSelectedOptionByTag(String.valueOf(comp));
         }
+    }
+
+    public void updateWhiteBalanceButtons() {
+        String value = mSettingsManager.getString(mAppController.getCameraScope(),
+                Keys.KEY_WHITEBALANCE);
+        mModeOptionsWhiteBalance.setSelectedOptionByTag(value);
+    }
+
+    public void updateSceneButtons() {
+        String value = mSettingsManager.getString(mAppController.getCameraScope(),
+                Keys.KEY_SCENE_MODE);
+        mModeOptionsScene.setSelectedOptionByTag(value);
+    }
+
+    public void updateColorEffectButtons() {
+        String value = mSettingsManager.getString(mAppController.getCameraScope(),
+                Keys.KEY_COLOR_EFFECT);
+        mModeOptionsColor.setSelectedOptionByTag(value);
+    }
+
+    /**
+     * Update the visual state of the manual exposure buttons
+     */
+    public void updateExposureButtonsOfScreen() {
+        int compValue = mSettingsManager.getInteger(mAppController.getCameraScope(),
+                                                    Keys.KEY_EXPOSURE);
+        if (mExposureCompensationStep != 0.0f) {
+            int comp = Math.round(compValue * mExposureCompensationStep);
+            mModeOptionsExposureOfScreen.setSelectedOptionByTag(String.valueOf(comp));
+        }
+    }
+
+    public void updateSaturationButtons() {
+        String value = mSettingsManager.getString(mAppController.getCameraScope(),
+                Keys.KEY_SATURATION);
+        mModeOptionsSaturation.setSelectedOptionByTag(value);
+    }
+
+    public void updateContrastButtons() {
+        String value = mSettingsManager.getString(mAppController.getCameraScope(),
+                Keys.KEY_CONTRAST);
+        mModeOptionsContrast.setSelectedOptionByTag(value);
+    }
+
+    public void updateSharpnessButtons() {
+        String value = mSettingsManager.getString(mAppController.getCameraScope(),
+                Keys.KEY_SHARPNESS);
+        mModeOptionsSharpness.setSelectedOptionByTag(value);
+    }
+
+    public void updateBrightnessButtons() {
+        String value = mSettingsManager.getString(mAppController.getCameraScope(),
+                Keys.KEY_BRIGHTNESS);
+        mModeOptionsBrightness.setSelectedOptionByTag(value);
+    }
+
+    public void updateHueButtons() {
+        String value = mSettingsManager.getString(mAppController.getCameraScope(),
+                Keys.KEY_HUE);
+        mModeOptionsHue.setSelectedOptionByTag(value);
+    }
+
+    public void resetModeOptionsButtonScroll() {
+        if (mModeOptionsButtons != null)
+            mModeOptionsButtons.scrollTo(0, 0);
     }
 
     /**
@@ -912,6 +1583,70 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
 
         int index = mSettingsManager.getIndexOfCurrentValue(SettingsManager.SCOPE_GLOBAL,
                                                             Keys.KEY_CAMERA_GRID_LINES);
+        button.setState(index >= 0 ? index : 0, true);
+    }
+    
+    /**
+     * Initialize a zsl button.
+     */
+    private void initializeZslButton(MultiToggleImageButton button,
+            final ButtonCallback cb, int resIdImages) {
+
+        if (resIdImages > 0) {
+            button.overrideImageIds(resIdImages);
+        }
+        button.overrideContentDescriptions(R.array.zsl_descriptions);
+
+        button.setOnStateChangeListener(new MultiToggleImageButton.OnStateChangeListener() {
+            @Override
+            public void stateChanged(View view, int state) {
+                mSettingsManager.setValueByIndex(SettingsManager.SCOPE_GLOBAL,
+                                                 Keys.KEY_BURST_CAPTURE_ON, state);
+                if (cb != null) {
+                    cb.onStateChanged(state);
+                }
+            }
+        });
+
+        int index = mSettingsManager.getIndexOfCurrentValue(SettingsManager.SCOPE_GLOBAL,
+                                                            Keys.KEY_BURST_CAPTURE_ON);
+        button.setState(index >= 0 ? index : 0, true);
+    }
+
+    public boolean isZslButtonChanging() {
+        MultiToggleImageButton zslButton = getButtonOrError(BUTTON_ZSL);
+        return zslButton.isStateChanging();
+    }
+
+    public void setZslButtonChangeOver() {
+        MultiToggleImageButton zslButton = getButtonOrError(BUTTON_ZSL);
+        zslButton.setStateChangeOver(true);
+    }
+
+    /**
+     * Initialize a smile shutter button.
+     */
+    private void initializeSmileShutterButton(MultiToggleImageButton button,
+            final ButtonCallback cb, int resIdImages) {
+
+        if (resIdImages > 0) {
+            button.overrideImageIds(resIdImages);
+        }
+        button.overrideContentDescriptions(R.array.smile_shutter_descriptions);
+
+        button.setOnStateChangeListener(new MultiToggleImageButton.OnStateChangeListener() {
+            @Override
+            public void stateChanged(View view, int state) {
+                mSettingsManager.setValueByIndex(SettingsManager.SCOPE_GLOBAL,
+                                                 Keys.KEY_SMILE_SHUTTER_ON, state);
+                if (cb != null) {
+                    cb.onStateChanged(state);
+                }
+            }
+        });
+
+        int index = mSettingsManager.getIndexOfCurrentValue(SettingsManager.SCOPE_GLOBAL,
+                                                            Keys.KEY_SMILE_SHUTTER_ON);
         button.setState(index >= 0 ? index : 0, true);
     }
 

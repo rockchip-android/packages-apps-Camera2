@@ -216,4 +216,16 @@
     <dimen name="rounded_thumbnail_ripple_ring_diameter_max">70dp</dimen>
     <dimen name="rounded_thumbnail_ripple_ring_thick_max">5dp</dimen>
     <dimen name="rounded_thumbnail_ripple_ring_thick_min">1dp</dimen>
+
+    <dimen name="scene_options_height">96dp</dimen>
+    <dimen name="progress_bar_text_size">20sp</dimen>
+    <dimen name="progress_bar_size">96dp</dimen>
+
+    <dimen name="preference_list_divider_height">1dp</dimen>
+
+    <dimen name="mode_options_screen_effects_width">350dp</dimen>
+
+    <dimen name="scene_mode_item_margin">5dp</dimen>
+    <dimen name="burst_saving_message_top_margin">40dp</dimen>
+    <dimen name="manual_focus_seek_padding">30dp</dimen>
 </resources>

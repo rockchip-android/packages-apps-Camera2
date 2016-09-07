@@ -203,6 +203,8 @@ public class DetailsDialog {
             if (bitmap == null)
                 return;
             onResolutionAvailable(bitmap.getWidth(), bitmap.getHeight());
+            bitmap.recycle();
+            bitmap = null;
         }
 
         @Override

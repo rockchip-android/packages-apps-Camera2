@@ -134,6 +134,8 @@ public class VideoItem extends FilmstripItemBase<VideoItemData> {
             String duration = MediaDetails.formatDuration(mContext,
                     TimeUnit.MILLISECONDS.toSeconds(mData.getVideoDurationMillis()));
             mediaDetails.addDetail(MediaDetails.INDEX_DURATION, duration);
+            mediaDetails.addDetail(MediaDetails.INDEX_WIDTH, getWidth());
+            mediaDetails.addDetail(MediaDetails.INDEX_HEIGHT, getHeight());
         }
         return optionalDetails;
     }

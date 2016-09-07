@@ -16,28 +16,35 @@
 
 package com.android.camera;
 
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.View.MeasureSpec;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.android.camera.app.OrientationManager;
 import com.android.camera.debug.Log;
+import com.android.camera.ui.CountDownView;
 import com.android.camera.ui.PreviewOverlay;
 import com.android.camera.ui.PreviewStatusListener;
 import com.android.camera.ui.RotateLayout;
+import com.android.camera.util.CameraUtil;
 import com.android.camera.ui.focus.FocusRing;
 import com.android.camera2.R;
 import com.android.ex.camera2.portability.CameraCapabilities;
 import com.android.ex.camera2.portability.CameraSettings;
 
-public class VideoUI implements PreviewStatusListener {
+public class VideoUI implements PreviewStatusListener,
+    PreviewStatusListener.PreviewAreaChangedListener {
     private static final Log.Tag TAG = new Log.Tag("VideoUI");
 
     private final static float UNSET = 0f;
@@ -49,6 +56,7 @@ public class VideoUI implements PreviewStatusListener {
     // An review image having same size as preview. It is displayed when
     // recording is stopped in capture intent.
     private ImageView mReviewImage;
+    private RectF mPreviewArea;
     private TextView mRecordingTimeView;
     private LinearLayout mLabelsLinearLayout;
     private RotateLayout mRecordingTimeRect;
@@ -58,6 +66,8 @@ public class VideoUI implements PreviewStatusListener {
 
     private float mAspectRatio = UNSET;
     private final AnimationManager mAnimationManager;
+    
+    private final CountDownView mCountdownView;
 
     @Override
     public void onPreviewLayoutChanged(View v, int left, int top, int right,
@@ -72,6 +82,42 @@ public class VideoUI implements PreviewStatusListener {
     @Override
     public void onPreviewFlipped() {
         mController.updateCameraOrientation();
+    }
+    
+    /**
+     * Starts the countdown timer.
+     *
+     * @param sec seconds to countdown
+     */
+    public void startCountdown(int sec) {
+        mCountdownView.startCountDown(sec);
+    }
+    
+    /**
+     * Sets a listener that gets notified when the countdown is finished.
+     */
+    public void setCountdownFinishedListener(CountDownView.OnCountDownStatusListener listener) {
+        mCountdownView.setCountDownStatusListener(listener);
+    }
+
+    /**
+     * Returns whether the countdown is on-going.
+     */
+    public boolean isCountingDown() {
+        return mCountdownView.isCountingDown();
+    }
+
+    /**
+     * Cancels the on-going countdown, if any.
+     */
+    public void cancelCountDown() {
+        mCountdownView.cancelCountDown();
+    }
+
+    @Override
+    public void onPreviewAreaChanged(RectF previewArea) {
+        // TODO Auto-generated method stub
+        mCountdownView.onPreviewAreaChanged(previewArea);
     }
 
     private final GestureDetector.OnGestureListener mPreviewGestureListener
@@ -96,6 +142,29 @@ public class VideoUI implements PreviewStatusListener {
         initializeMiscControls();
         mAnimationManager = new AnimationManager();
         mFocusRing = (FocusRing) mRootView.findViewById(R.id.focus_ring);
+        mCountdownView = (CountDownView) mRootView.findViewById(R.id.count_down_view);
+
+        if (mController.isVideoCaptureIntent()) {
+            initIntentReviewImageView();
+        }
+    }
+
+    private void initIntentReviewImageView() {
+        mActivity.getCameraAppUI().addPreviewAreaChangedListener(
+                new PreviewStatusListener.PreviewAreaChangedListener() {
+                    @Override
+                    public void onPreviewAreaChanged(RectF previewArea) {
+                        mPreviewArea = previewArea;
+                        FrameLayout.LayoutParams params =
+                            (FrameLayout.LayoutParams) mReviewImage.getLayoutParams();
+                        params.width = (int) previewArea.width();
+                        params.height = (int) previewArea.height();
+                        params.setMargins((int) previewArea.left, (int) previewArea.top, 0, 0);
+                        mReviewImage.setLayoutParams(params);
+                        if (!CameraUtil.AUTO_ROTATE_SENSOR)
+                            updateIntentReviewByOrientation();
+                    }
+                });
     }
 
     public void setPreviewSize(int width, int height) {
@@ -191,6 +260,12 @@ public class VideoUI implements PreviewStatusListener {
         mReviewImage.setVisibility(View.VISIBLE);
     }
 
+    public boolean isReviewVisible() {
+        if (mReviewImage != null)
+            return mReviewImage.getVisibility() == View.VISIBLE;
+        return false;
+    }
+
     public void initializeZoom(CameraSettings settings, CameraCapabilities capabilities) {
         mZoomMax = capabilities.getMaxZoomRatio();
         // Currently we use immediate zoom for fast zooming to get better UX and
@@ -202,6 +277,14 @@ public class VideoUI implements PreviewStatusListener {
 
     public void setRecordingTime(String text) {
         mRecordingTimeView.setText(text);
+        if (!CameraUtil.AUTO_ROTATE_SENSOR && mRecordingTimeView.getWidth() == 0) {
+            int measureWidth = MeasureSpec.makeMeasureSpec(mRecordingTimeView.
+                    getLayoutParams().width, MeasureSpec.AT_MOST);
+            int measureHeight = MeasureSpec.makeMeasureSpec(mRecordingTimeView.
+                    getLayoutParams().height, MeasureSpec.AT_MOST);
+            mRecordingTimeView.measure(measureWidth, measureHeight);
+            updateRecordingTimeViewByOrientation();
+        }
     }
 
     public void setRecordingTimeTextColor(int color) {
@@ -296,5 +379,67 @@ public class VideoUI implements PreviewStatusListener {
     public void onPause() {
         // recalculate aspect ratio when restarting.
         mAspectRatio = 0.0f;
+    }
+
+    public void updateUIByOrientation() {
+        mCountdownView.setRotation(CameraUtil.mUIRotated);
+        mActivity.getCameraAppUI().updateUIByOrientation();
+        updateRecordingTimeViewByOrientation();
+        updateIntentReviewByOrientation();
+    }
+
+    private void updateRecordingTimeViewByOrientation() {
+        if (CameraUtil.mIsPortrait) {
+            mRecordingTimeView.setTranslationX(0);
+            mRecordingTimeView.setTranslationY(0);
+        } else if (CameraUtil.mScreenOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE) {
+            FrameLayout.LayoutParams timeRectlp = (FrameLayout.LayoutParams) mRecordingTimeRect.getLayoutParams();
+            LinearLayout.LayoutParams timeViewlp = (LinearLayout.LayoutParams) mRecordingTimeView.getLayoutParams();
+            if (timeRectlp.rightMargin > timeRectlp.bottomMargin) {
+                int tmp = timeRectlp.rightMargin;
+                timeRectlp.rightMargin = timeRectlp.bottomMargin;
+                timeRectlp.bottomMargin = tmp;
+            }
+            mRecordingTimeView.setTranslationX((mRecordingTimeView.getMeasuredHeight() - mRecordingTimeView.getMeasuredWidth())
+                    / 2.0f + mRootView.getWidth() - 2 * timeRectlp.leftMargin
+                    - 2 * timeViewlp.leftMargin
+                    - mRecordingTimeView.getMeasuredHeight());
+            mRecordingTimeView.setTranslationY((mRecordingTimeView.getMeasuredWidth() - mRecordingTimeView.getMeasuredHeight())
+                    / 2.0f);
+        } else if (CameraUtil.mScreenOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+            FrameLayout.LayoutParams timeRectlp = (FrameLayout.LayoutParams) mRecordingTimeRect.getLayoutParams();
+            if (timeRectlp.rightMargin > timeRectlp.bottomMargin) {
+                int tmp = timeRectlp.rightMargin;
+                timeRectlp.rightMargin = timeRectlp.bottomMargin;
+                timeRectlp.bottomMargin = tmp;
+            }
+            mRecordingTimeView.setTranslationX((mRecordingTimeView.getMeasuredHeight() - mRecordingTimeView.getMeasuredWidth())
+                    / 2.0f);
+            mRecordingTimeView.setTranslationY((mRecordingTimeView.getMeasuredWidth() - mRecordingTimeView.getMeasuredHeight())
+                    / 2.0f);
+        }
+        mRecordingTimeView.setRotation(CameraUtil.mUIRotated);
+    }
+
+    private void updateIntentReviewByOrientation() {
+        if (mPreviewArea == null || mReviewImage == null) return;
+        FrameLayout.LayoutParams params =
+                (FrameLayout.LayoutParams) mReviewImage.getLayoutParams();
+        if (CameraUtil.mIsPortrait) {
+            params.width = (int) mPreviewArea.width();
+            params.height = (int) mPreviewArea.height();
+            params.setMargins((int) mPreviewArea.left, (int) mPreviewArea.top, 0, 0);
+            mReviewImage.setLayoutParams(params);
+            mReviewImage.setTranslationX(0);
+            mReviewImage.setTranslationY(0);
+        } else {
+            params.width = (int) mPreviewArea.height();
+            params.height = (int) mPreviewArea.width();
+            params.setMargins((int) mPreviewArea.left, (int) mPreviewArea.top, 0, 0);
+            mReviewImage.setLayoutParams(params);
+            mReviewImage.setTranslationX((mPreviewArea.width() - mPreviewArea.height()) / 2.0f);
+            mReviewImage.setTranslationY((mPreviewArea.height() - mPreviewArea.width()) / 2.0f);
+        }
+        mReviewImage.setRotation(CameraUtil.mUIRotated);
     }
 }

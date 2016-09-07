@@ -41,7 +41,7 @@ public class OneCameraFeatureConfigCreator {
     public static OneCameraFeatureConfig createDefault(ContentResolver contentResolver,
             MemoryManager memoryManager) {
         // Enable CaptureModule on all M devices.
-        boolean useCaptureModule = true;
+        boolean useCaptureModule = false;
         Log.i(TAG, "CaptureModule? " + useCaptureModule);
 
         // HDR+ has multiple levels of support.

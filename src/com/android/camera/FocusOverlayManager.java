@@ -25,6 +25,7 @@ import android.os.Message;
 
 import com.android.camera.app.AppController;
 import com.android.camera.app.MotionManager;
+import com.android.camera.debug.DebugPropertyHelper;
 import com.android.camera.debug.Log;
 import com.android.camera.one.Settings3A;
 import com.android.camera.settings.Keys;
@@ -106,6 +107,7 @@ public class FocusOverlayManager implements PreviewStatusListener.PreviewAreaCha
     private final FocusRing mFocusRing;
     private final Rect mPreviewRect = new Rect(0, 0, 0, 0);
     private boolean mFocusLocked;
+    private boolean mManualFocusing;
 
     /** Manual tap to focus parameters */
     private TouchCoordinate mTouchCoordinate;
@@ -165,6 +167,7 @@ public class FocusOverlayManager implements PreviewStatusListener.PreviewAreaCha
         setMirror(mirror);
         mFocusRing = focusRing;
         mFocusLocked = false;
+        mManualFocusing = false;
     }
 
     public void updateCapabilities(CameraCapabilities capabilities) {
@@ -250,26 +253,45 @@ public class FocusOverlayManager implements PreviewStatusListener.PreviewAreaCha
         unlockAeAwbIfNeeded();
     }
 
+    public void setManualFocusState(boolean focusing) {
+        mManualFocusing = focusing;
+    }
+
     public void focusAndCapture(CameraCapabilities.FocusMode currentFocusMode) {
+        Log.i(TAG, "curFocusMode = " + currentFocusMode);
         if (!mInitialized) {
             return;
         }
-
+        Log.i(TAG, "curState = " + mState);
         if (!needAutoFocusCall(currentFocusMode)) {
             // Focus is not needed.
+            Log.i(TAG, "Focus is not needed");
             capture();
         } else if (mState == STATE_SUCCESS || mState == STATE_FAIL) {
             // Focus is done already.
+            Log.i(TAG, "Focus is done already");
             capture();
         } else if (mState == STATE_FOCUSING) {
             // Still focusing and will not trigger snap upon finish.
-            mState = STATE_FOCUSING_SNAP_ON_FINISH;
+            Log.i(TAG, "Still focusing");
+            if (mSettingsManager.getBoolean(SettingsManager.SCOPE_GLOBAL, Keys.KEY_BURST_CAPTURE_ON)
+                    || mManualFocusing || DebugPropertyHelper.isAFDisabledBeforeCapture()) {
+                cancelAutoFocus();
+                capture();
+            } else
+                mState = STATE_FOCUSING_SNAP_ON_FINISH;
         } else if (mState == STATE_IDLE) {
-            autoFocusAndCapture();
+            Log.i(TAG, "STATE_IDLE");
+            if (mSettingsManager.getBoolean(SettingsManager.SCOPE_GLOBAL, Keys.KEY_BURST_CAPTURE_ON)
+                    || mManualFocusing || DebugPropertyHelper.isAFDisabledBeforeCapture())
+                capture();
+            else 
+                autoFocusAndCapture();
         }
     }
 
     public void onAutoFocus(boolean focused, boolean shutterButtonPressed) {
+        Log.i(TAG, "onAutoFocus State = " + mState);
         if (mState == STATE_FOCUSING_SNAP_ON_FINISH) {
             // Take the picture no matter focus succeeds or fails. No need
             // to play the AF sound if we're about to play the shutter
@@ -399,6 +421,24 @@ public class FocusOverlayManager implements PreviewStatusListener.PreviewAreaCha
             mHandler.removeMessages(RESET_TOUCH_FOCUS);
             mHandler.sendEmptyMessageDelayed(RESET_TOUCH_FOCUS, RESET_TOUCH_FOCUS_DELAY_MILLIS);
         }
+    }
+
+    public void onManualFocusStart() {
+        Log.i(TAG,"onManualFocusStart");
+        if (!mInitialized || mState == STATE_FOCUSING_SNAP_ON_FINISH) {
+            return;
+        }
+
+        // Let users be able to cancel previous touch focus.
+        if ((mFocusArea != null) && (mState == STATE_FOCUSING ||
+                    mState == STATE_SUCCESS || mState == STATE_FAIL)) {
+            cancelAutoFocus();
+        }
+    }
+
+    public void onManualFocusEnd() {
+        Log.i(TAG,"onManualFocusEnd");
+        cancelAutoFocus();
     }
 
     public void onPreviewStarted() {

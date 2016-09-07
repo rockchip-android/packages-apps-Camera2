@@ -32,6 +32,7 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 
+import com.android.camera.util.CameraUtil;
 import com.android.camera.util.Gusterpolator;
 import com.android.camera2.R;
 
@@ -74,6 +75,7 @@ public class MultiToggleImageButton extends ImageButton {
     private int mAnimDirection;
     private Matrix mMatrix = new Matrix();
     private ValueAnimator mAnimator;
+    private boolean mStateChanging= false;
 
     public MultiToggleImageButton(Context context) {
         super(context);
@@ -101,6 +103,7 @@ public class MultiToggleImageButton extends ImageButton {
      */
     public void setOnStateChangeListener(OnStateChangeListener onStateChangeListener) {
         mOnStateChangeListener = onStateChangeListener;
+		mStateChanging = false;
     }
 
     /**
@@ -177,6 +180,12 @@ public class MultiToggleImageButton extends ImageButton {
                     setImageBitmap(bitmap);
 
                     int offset;
+                    if (!CameraUtil.AUTO_ROTATE_SENSOR) {
+                        if (CameraUtil.mIsPortrait)
+                            mAnimDirection = ANIM_DIRECTION_VERTICAL;
+                        else
+                            mAnimDirection = ANIM_DIRECTION_HORIZONTAL;
+                    }
                     if (mAnimDirection == ANIM_DIRECTION_VERTICAL) {
                         offset = (mParentSize+getHeight())/2;
                     } else if (mAnimDirection == ANIM_DIRECTION_HORIZONTAL) {
@@ -216,6 +225,14 @@ public class MultiToggleImageButton extends ImageButton {
         mClickEnabled = enabled;
     }
 
+    public boolean isStateChanging() {
+        return mStateChanging;
+    }
+
+    public void setStateChangeOver(boolean over) {
+        mStateChanging = !over;
+    }
+
     private void setStateInternal(int state, boolean callListener) {
         mState = state;
         if (mImageIds != null) {
@@ -253,6 +270,7 @@ public class MultiToggleImageButton extends ImageButton {
             @Override
             public void onClick(View v) {
                 if (mClickEnabled) {
+                    mStateChanging = true;
                     nextState();
                 }
             }
@@ -266,6 +284,12 @@ public class MultiToggleImageButton extends ImageButton {
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
                 mMatrix.reset();
+                if (!CameraUtil.AUTO_ROTATE_SENSOR) {
+                    if (CameraUtil.mIsPortrait)
+                        mAnimDirection = ANIM_DIRECTION_VERTICAL;
+                    else
+                        mAnimDirection = ANIM_DIRECTION_HORIZONTAL;
+                }
                 if (mAnimDirection == ANIM_DIRECTION_VERTICAL) {
                     mMatrix.setTranslate(0.0f, (Float) animation.getAnimatedValue());
                 } else if (mAnimDirection == ANIM_DIRECTION_HORIZONTAL) {
@@ -391,6 +415,12 @@ public class MultiToggleImageButton extends ImageButton {
 
         // combine 'em
         Bitmap bitmap = null;
+        if (!CameraUtil.AUTO_ROTATE_SENSOR) {
+            if (CameraUtil.mIsPortrait)
+                mAnimDirection = ANIM_DIRECTION_VERTICAL;
+            else
+                mAnimDirection = ANIM_DIRECTION_HORIZONTAL;
+        }
         if (mAnimDirection == ANIM_DIRECTION_VERTICAL) {
             int bitmapHeight = (height*2) + ((mParentSize - height)/2);
             int oldBitmapOffset = height + ((mParentSize - height)/2);

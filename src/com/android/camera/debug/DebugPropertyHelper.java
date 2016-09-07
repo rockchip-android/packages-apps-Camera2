@@ -38,6 +38,25 @@ public class DebugPropertyHelper {
     private static final String PROP_WRITE_CAPTURE_DATA = PREFIX + ".capture_write";
     /** Is RAW support enabled. */
     private static final String PROP_CAPTURE_DNG = PREFIX + ".capture_dng";
+	/** controll preview not rotate. */
+    private static final String PROP_PREVIEW_NOT_ROTATE = PREFIX + ".preview_norotate";
+    /** controll preview full size. */
+    private static final String PROP_PREVIEW_FULLSIZE_ON = PREFIX + ".preview_full";
+    /** controll banding mode. */
+    private static final String PROP_BANDING_MODE = PREFIX + ".banding";
+    /** controll if autofocus before capture. */
+    private static final String PROP_AF_BEFORE_CAPTURE = PREFIX + ".capture_af";
+    /** controll capture mode. 0:zsl&normal 1:normal-only 2:zsl-only */
+    private static final String PROP_CAPTURE_MODE = PREFIX + ".capture_mode";
+    public static final String ZSL_NORMAL_MODE = "0";
+    public static final String ONLY_NORMAL_MODE = "1";
+    public static final String ONLY_ZSL_MODE = "2";
+    /** controll debug on. */
+    private static final String PROP_DEBUG_ON = PREFIX + ".debug";
+    /** controll smile shutter auto on. */
+    private static final String PROP_SMILESHUTTER_AUTO = PREFIX + ".smile_auto";
+    /** controll video snapshot. */
+    private static final String PROP_VIDEO_SNAPSHOT = PREFIX + ".video_capture";
 
     private static boolean isPropertyOn(String property) {
         return ON_VALUE.equals(SystemProperties.get(property, OFF_VALUE));
@@ -57,5 +76,37 @@ public class DebugPropertyHelper {
 
     public static boolean isCaptureDngEnabled() {
         return isPropertyOn(PROP_CAPTURE_DNG);
+    }
+
+    public static boolean isPreviewAutoRotate() {
+        return !isPropertyOn(PROP_PREVIEW_NOT_ROTATE);
+    }
+
+    public static String getDefaultBanding() {
+        return SystemProperties.get(PROP_BANDING_MODE, "auto");
+    }
+
+    public static boolean isPreviewFullSizeOn() {
+        return isPropertyOn(PROP_PREVIEW_FULLSIZE_ON);
+    }
+
+    public static boolean isAFDisabledBeforeCapture() {
+        return !isPropertyOn(PROP_AF_BEFORE_CAPTURE);
+    }
+
+    public static String getCaptureMode() {
+        return SystemProperties.get(PROP_CAPTURE_MODE, ZSL_NORMAL_MODE);
+    }
+
+    public static boolean isDebugOn() {
+        return isPropertyOn(PROP_DEBUG_ON);
+    }
+
+    public static boolean isSmileShutterAuto() {
+        return isPropertyOn(PROP_SMILESHUTTER_AUTO);
+    }
+
+    public static boolean isVideoSnapShotEnabled() {
+        return isPropertyOn(PROP_VIDEO_SNAPSHOT);
     }
 }

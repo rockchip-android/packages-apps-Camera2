@@ -277,6 +277,8 @@ public interface AppController {
      */
     public void setShutterEnabled(boolean enabled);
 
+    public void setShutterLongClickEnabled(boolean enabled);
+
     /**
      * Checks whether the shutter is enabled.
      */

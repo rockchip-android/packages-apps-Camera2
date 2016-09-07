@@ -223,7 +223,7 @@ public class FilmstripView extends ViewGroup {
             if (mRenderSize != RenderSize.FULL_RES) {
                 mRenderSize = RenderSize.FULL_RES;
 
-                Log.i(TAG, "[ViewItem:" + mIndex + "] mData.renderFullRes()");
+                Log.d(TAG, "[ViewItem:" + mIndex + "] mData.renderFullRes()");
                 mData.renderFullRes(mView);
             }
         }
@@ -1263,6 +1263,8 @@ public class FilmstripView extends ViewGroup {
 
                 if (setToVisible && !isVisible) {
                     curr.setVisibility(VISIBLE);
+                } else if (scaleFraction > 0.99f) {
+                    curr.setVisibility(INVISIBLE);
                 }
 
                 curr.setTranslationX((mViewItems[BUFFER_CENTER].getLeftPosition() -
@@ -1555,6 +1557,7 @@ public class FilmstripView extends ViewGroup {
 
     private void setDataAdapter(FilmstripDataAdapter adapter) {
         mDataAdapter = adapter;
+        if (mDataAdapter == null) return;
         int maxEdge = (int) (Math.max(this.getHeight(), this.getWidth())
                 * FILM_STRIP_SCALE);
         mDataAdapter.suggestViewSizeBound(maxEdge, maxEdge);
@@ -1959,6 +1962,8 @@ public class FilmstripView extends ViewGroup {
                             renderThumbnail(BUFFER_CENTER - 1);
                             renderThumbnail(BUFFER_CENTER + 2);
                         }
+                        if (inFullScreen())
+                            renderFullRes(BUFFER_CENTER);
                     }
                 };
 
@@ -2621,6 +2626,7 @@ public class FilmstripView extends ViewGroup {
             if (inFilmstrip()) {
                 if (centerItem != null && centerItem.areaContains(x, y)) {
                     mController.goToFullScreen();
+                    renderFullRes(BUFFER_CENTER);
                     return true;
                 }
             } else if (inFullScreen()) {

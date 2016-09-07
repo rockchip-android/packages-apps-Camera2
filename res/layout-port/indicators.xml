@@ -15,7 +15,7 @@
 -->
 <!-- This layout is shared by phone and tablet in landscape orientation. -->
   <!-- TODO: make horizontal once nine patch stretches horizontally -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.android.camera.ui.ModeOptionsToggle xmlns:android="http://schemas.android.com/apk/res/android"
       android:id="@+id/mode_options_toggle"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
@@ -25,6 +25,22 @@
       android:contentDescription="@string/accessibility_mode_options"
       android:background="@drawable/bg_options_indicator"
       android:layout_gravity="bottom|right" >
+    <ImageView
+        android:id="@+id/wb_cloudy_indicator"
+        style="@style/IndicatorIcon"
+        android:src="@drawable/ic_indicator_wb_cloudy" />
+    <ImageView
+        android:id="@+id/wb_fluorescent_indicator"
+        style="@style/IndicatorIcon"
+        android:src="@drawable/ic_indicator_wb_fluorescent" />
+    <ImageView
+        android:id="@+id/wb_tungsten_indicator"
+        style="@style/IndicatorIcon"
+        android:src="@drawable/ic_indicator_wb_tungsten" />
+    <ImageView
+        android:id="@+id/wb_daylight_indicator"
+        style="@style/IndicatorIcon"
+        android:src="@drawable/ic_indicator_wb_daylight" />
     <ImageView
         android:id="@+id/exposure_n2_indicator"
         style="@style/IndicatorIcon"
@@ -41,6 +57,12 @@
         android:id="@+id/exposure_p2_indicator"
         style="@style/IndicatorIcon"
         android:src="@drawable/ic_exposure_p2_indicator" />
+    <ImageView 
+        android:id="@+id/smile_shutter_indicator"
+        style="@style/IndicatorIcon" />
+    <ImageView 
+        android:id="@+id/zsl_indicator"
+        style="@style/IndicatorIcon" />
     <ImageView
         android:id="@+id/pano_indicator"
         style="@style/IndicatorIcon" />
@@ -59,4 +81,4 @@
         android:src="@drawable/ic_options_port"
         android:contentDescription="@string/accessibility_mode_options"
         android:visibility="visible" />
-</LinearLayout>
+</com.android.camera.ui.ModeOptionsToggle>

@@ -418,7 +418,17 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener,
         int width = (int) textureArea.width() / downsample;
         int height = (int) textureArea.height() / downsample;
         Bitmap preview = mPreview.getBitmap(width, height);
-        return Bitmap.createBitmap(preview, 0, 0, width, height, mPreview.getTransform(null), true);
+        try {
+            Bitmap b1 = Bitmap.createBitmap(preview, 0, 0, width, height, mPreview.getTransform(null), true);
+            if (b1 != preview) {
+                preview.recycle();
+                preview = b1;
+            }
+        } catch (OutOfMemoryError e) {
+            // We have no memory to rotate. Return the original bitmap.
+            System.gc();
+        }
+        return preview;//Bitmap.createBitmap(preview, 0, 0, width, height, mPreview.getTransform(null), true);
     }
 
     /**
@@ -493,5 +503,12 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener,
             mSurfaceTextureListener.onSurfaceTextureUpdated(surface);
         }
 
+    }
+
+    public void pause() {
+        if (mPreview != null) {
+            mPreview.removeOnLayoutChangeListener(this);
+            mPreview.setSurfaceTextureListener(null);
+        }
     }
 }

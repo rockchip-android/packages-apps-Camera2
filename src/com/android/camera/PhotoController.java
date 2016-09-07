@@ -52,6 +52,14 @@ public interface PhotoController extends OnShutterButtonListener {
 
     public void onSingleTapUp(View view, int x, int y);
 
+    public void onManualFocusChanged(int progress, int max);
+
+    public void onManualFocusStart(View parent);
+
+    public void onManualFocusEnd();
+
+    public boolean isManualFocusEnabled();
+
     public void updatePreviewAspectRatio(float aspectRatio);
 
     public void updateCameraOrientation();
@@ -77,5 +85,7 @@ public interface PhotoController extends OnShutterButtonListener {
      * Starts the pre-capture animation.
      */
     public void startPreCaptureAnimation();
+
+    public boolean cancelSmileShutterIfOn();
 
 }

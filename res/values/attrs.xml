@@ -48,5 +48,6 @@
     </declare-styleable>
     <declare-styleable name="RadioOptions">
         <attr name="selected_drawable" format="reference" />
+        <attr name="option_height" format="reference"/>
     </declare-styleable>
 </resources>

@@ -37,6 +37,7 @@ import android.view.View;
 
 import com.android.camera.app.CameraAppUI;
 import com.android.camera.debug.Log;
+import com.android.camera.util.CameraUtil;
 import com.android.camera.util.Gusterpolator;
 import com.android.camera2.R;
 
@@ -187,7 +188,13 @@ public class ModeTransitionView extends View {
             return;
         }
         super.onDraw(canvas);
-        mIconDrawable.draw(canvas);
+        if (!CameraUtil.AUTO_ROTATE_SENSOR) {
+            canvas.save();
+            canvas.rotate(mRotation, getMeasuredWidth()/2.0f, getMeasuredHeight()/2.0f);
+            mIconDrawable.draw(canvas);
+            canvas.restore();
+        } else 
+            mIconDrawable.draw(canvas);
     }
 
     @Override
@@ -576,6 +583,14 @@ public class ModeTransitionView extends View {
         mBackgroundBitmap = null;
         setVisibility(GONE);
         mAnimationType = IDLE;
+    }
+
+    private float mRotation;
+    @Override
+    public void setRotation(float rotation) {
+        // TODO Auto-generated method stub
+        mRotation = rotation;
+        postInvalidate();
     }
 }
 

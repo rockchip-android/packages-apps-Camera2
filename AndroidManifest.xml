@@ -2,7 +2,8 @@
 
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.android.camera2">
+    package="com.android.camera2"
+    android:versionName="rk_camera2_v1.0.0">
 
     <uses-sdk
         android:minSdkVersion="19"
@@ -29,6 +30,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
+    <uses-permission android:name="android.permission.WRITE_MEDIA_STORAGE"/>
 
     <supports-screens
         android:anyDensity="true"

@@ -93,6 +93,7 @@ public class OrientationManagerImpl implements OrientationManager {
 
     public void pause() {
         mOrientationListener.disable();
+        mLastDeviceOrientation = DeviceOrientation.CLOCKWISE_0;
     }
 
     @Override
@@ -148,7 +149,7 @@ public class OrientationManagerImpl implements OrientationManager {
 
     @Override
     public void lockOrientation() {
-        if (mOrientationLocked || mRotationLockedSetting) {
+        if (mOrientationLocked || mRotationLockedSetting || !CameraUtil.AUTO_ROTATE_SENSOR) {
             return;
         }
         mOrientationLocked = true;
@@ -161,7 +162,7 @@ public class OrientationManagerImpl implements OrientationManager {
 
     @Override
     public void unlockOrientation() {
-        if (!mOrientationLocked || mRotationLockedSetting) {
+        if (!mOrientationLocked || mRotationLockedSetting || !CameraUtil.AUTO_ROTATE_SENSOR) {
             return;
         }
         mOrientationLocked = false;
@@ -209,6 +210,8 @@ public class OrientationManagerImpl implements OrientationManager {
                 return;
             }
 
+            if (!CameraUtil.AUTO_ROTATE_SENSOR)
+                CameraUtil.mRawOrientation = orientation;
             final DeviceOrientation roundedDeviceOrientation =
                     roundOrientation(mLastDeviceOrientation, orientation);
             if (roundedDeviceOrientation == mLastDeviceOrientation) {

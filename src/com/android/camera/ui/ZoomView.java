@@ -157,7 +157,17 @@ public class ZoomView extends ImageView {
             }
             Matrix rotation = new Matrix();
             rotation.setRotate(mOrientation);
-            return Bitmap.createBitmap(b, 0, 0, b.getWidth(), b.getHeight(), rotation, false);
+            try {
+                Bitmap b1 = Bitmap.createBitmap(b, 0, 0, b.getWidth(), b.getHeight(), rotation, false);
+                if (b1 != b) {
+                    b.recycle();
+                    b = b1;
+                }
+            } catch (OutOfMemoryError e) {
+                // We have no memory to rotate. Return the original bitmap.
+                System.gc();
+            }
+            return b;//Bitmap.createBitmap(b, 0, 0, b.getWidth(), b.getHeight(), rotation, false);
         }
 
         @Override

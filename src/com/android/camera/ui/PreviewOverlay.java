@@ -33,6 +33,7 @@ import android.widget.Button;
 import com.android.camera.debug.Log;
 import com.android.camera2.R;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -66,7 +67,9 @@ public class PreviewOverlay extends View
     private GestureDetector mGestureDetector = null;
     private View.OnTouchListener mTouchListener = null;
     private OnZoomChangedListener mZoomListener = null;
-    private OnPreviewTouchedListener mOnPreviewTouchedListener;
+    private boolean mZoomEnabled;
+    private ArrayList<OnPreviewTouchedListener> mOnPreviewTouchedListener = new ArrayList<OnPreviewTouchedListener>();
+    private View mOverlayView;
 
     /** Maximum zoom; intialize to 1.0 (disabled) */
     private float mMaxZoom = MIN_ZOOM;
@@ -124,6 +127,23 @@ public class PreviewOverlay extends View
                           OnZoomChangedListener zoomChangeListener) {
         mZoomListener = zoomChangeListener;
         mZoomProcessor.setupZoom(zoomMaxRatio, zoom);
+        mZoomEnabled = true;
+    }
+
+    public void setOverlayView(View view) {
+        mOverlayView = view;
+    }
+
+    public void setZoomEnabled(boolean enable) {
+        mZoomEnabled = enable;
+    }
+
+    private boolean isManualFocusing() {
+        if (mOverlayView == null) return false;
+        View parent = (View) mOverlayView.getParent();
+        if (parent != null && parent.getVisibility() == View.VISIBLE)
+            return true;
+        return false;
     }
 
     /**
@@ -182,9 +202,10 @@ public class PreviewOverlay extends View
         if (mTouchListener != null) {
             mTouchListener.onTouch(this, m);
         }
-        mScaleDetector.onTouchEvent(m);
-        if (mOnPreviewTouchedListener != null) {
-            mOnPreviewTouchedListener.onPreviewTouched(m);
+        if (!isManualFocusing() && mZoomEnabled)
+            mScaleDetector.onTouchEvent(m);
+        for (OnPreviewTouchedListener listener : mOnPreviewTouchedListener) {
+            listener.onPreviewTouched(m);
         }
         return true;
     }
@@ -193,8 +214,8 @@ public class PreviewOverlay extends View
      * Set an {@link OnPreviewTouchedListener} to be executed on any preview
      * touch event.
      */
-    public void setOnPreviewTouchedListener(OnPreviewTouchedListener listener) {
-        mOnPreviewTouchedListener = listener;
+    public void addOnPreviewTouchedListener(OnPreviewTouchedListener listener) {
+        mOnPreviewTouchedListener.add(listener);
     }
 
     @Override

@@ -55,7 +55,7 @@ public class FilmstripItemList {
     private final LinkedList<FilmstripItem> mList = new LinkedList<FilmstripItem>();
     private final HashMap<Uri, FilmstripItem> mUriMap = new HashMap<Uri, FilmstripItem>();
 
-    public FilmstripItem get(int index) {
+    public synchronized FilmstripItem get(int index) {
         return mList.get(index);
     }
 
@@ -77,36 +77,36 @@ public class FilmstripItemList {
         }
     }
 
-    public FilmstripItem get(Uri uri) {
+    public synchronized FilmstripItem get(Uri uri) {
         return mUriMap.get(uri);
     }
 
-    public void set(int pos, FilmstripItem data) {
+    public synchronized void set(int pos, FilmstripItem data) {
         mList.set(pos, data);
         mUriMap.put(data.getData().getUri(), data);
     }
 
-    public void add(FilmstripItem data) {
+    public synchronized void add(FilmstripItem data) {
         mList.add(data);
         mUriMap.put(data.getData().getUri(), data);
     }
 
-    public void add(int pos, FilmstripItem data) {
+    public synchronized void add(int pos, FilmstripItem data) {
         mList.add(pos, data);
         mUriMap.put(data.getData().getUri(), data);
     }
 
-    public void addAll(List<? extends FilmstripItem> filmstripItemList) {
+    public synchronized void addAll(List<? extends FilmstripItem> filmstripItemList) {
         for (FilmstripItem filmstripItem : filmstripItemList) {
             add(filmstripItem);
         }
     }
 
-    public int size() {
+    public synchronized int size() {
         return mList.size();
     }
 
-    public void sort(Comparator<FilmstripItem> comparator) {
+    public synchronized void sort(Comparator<FilmstripItem> comparator) {
         Collections.sort(mList, comparator);
     }
 
@@ -115,7 +115,7 @@ public class FilmstripItemList {
      * O(n) but has a fast exit path for when the uri is not contained in the
      * list, and immediately returns -1;
      */
-    public int indexOf(Uri uri) {
+    public synchronized int indexOf(Uri uri) {
         if (!mUriMap.containsKey(uri)) {
             return -1;
         }

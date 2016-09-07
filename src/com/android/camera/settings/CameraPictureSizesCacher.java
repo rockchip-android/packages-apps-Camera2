@@ -34,6 +34,7 @@ import java.util.List;
 public class CameraPictureSizesCacher {
     private static final String PICTURE_SIZES_BUILD_KEY = "CachedSupportedPictureSizes_Build_Camera";
     private static final String PICTURE_SIZES_SIZES_KEY = "CachedSupportedPictureSizes_Sizes_Camera";
+    public static final String FACEDETECTION_MAX_SIZES_KEY = "CachedSupportedMaxNumFaceDetection_Camera";
 
     /**
      * Opportunistically update the picture sizes cache, if needed.
@@ -83,14 +84,17 @@ public class CameraPictureSizesCacher {
         if (thisCamera != null) {
             String key_build = PICTURE_SIZES_BUILD_KEY + cameraId;
             String key_sizes = PICTURE_SIZES_SIZES_KEY + cameraId;
+			String key_faces = FACEDETECTION_MAX_SIZES_KEY + cameraId;
             SharedPreferences defaultPrefs = PreferenceManager.getDefaultSharedPreferences(context);
 
             List<Size> sizes = Size.buildListFromCameraSizes(thisCamera.getParameters()
                     .getSupportedPictureSizes());
+            int maxNumDetectionFaces = thisCamera.getParameters().getMaxNumDetectedFaces();
             thisCamera.release();
             SharedPreferences.Editor editor = defaultPrefs.edit();
             editor.putString(key_build, Build.DISPLAY);
             editor.putString(key_sizes, Size.listToString(sizes));
+            editor.putInt(key_faces, maxNumDetectionFaces);
             editor.apply();
             return sizes;
         }
@@ -119,5 +123,32 @@ public class CameraPictureSizesCacher {
             }
         }
         return Optional.absent();
+    }
+
+    public static void updateMaxDetectionFacesForCamera(Context context, int cameraId, int maxFaces) {
+        String key_build = PICTURE_SIZES_BUILD_KEY + cameraId;
+        SharedPreferences defaultPrefs = PreferenceManager.getDefaultSharedPreferences(context);
+        String thisCameraCachedBuild = defaultPrefs.getString(key_build, null);
+        // Write to cache.
+        if (thisCameraCachedBuild == null) {
+            String key_faces = FACEDETECTION_MAX_SIZES_KEY + cameraId;
+            SharedPreferences.Editor editor = defaultPrefs.edit();
+            editor.putString(key_build, Build.DISPLAY);
+            editor.putInt(key_faces, maxFaces);
+            editor.apply();
+        }
+    }
+
+    public static boolean isFaceDetectionSupported(int cameraId, Context context) {
+        String key_build = PICTURE_SIZES_BUILD_KEY + cameraId;
+        String key_faces = FACEDETECTION_MAX_SIZES_KEY + cameraId;
+        SharedPreferences defaultPrefs = PreferenceManager.getDefaultSharedPreferences(context);
+        // Return cached value for cameraId and current build, if available.
+        String thisCameraCachedBuild = defaultPrefs.getString(key_build, null);
+        if (thisCameraCachedBuild != null && thisCameraCachedBuild.equals(Build.DISPLAY)) {
+            int maxFaces = defaultPrefs.getInt(key_faces, 0);
+            return maxFaces > 0;
+        }
+        return false;
     }
 }

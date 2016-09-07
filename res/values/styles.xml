@@ -243,4 +243,10 @@
              here with a Material-style black asset -->
         <item name="android:button">@drawable/checkbox_material_black</item>
     </style>
+    <style name="ColorProcessModeOption">
+      <item name="android:layout_width">40dp</item>
+      <item name="android:layout_height">40dp</item>
+      <item name="android:layout_margin">6dp</item>
+      <item name="android:background">@null</item>
+    </style>
 </resources>

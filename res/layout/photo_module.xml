@@ -45,4 +45,39 @@
               android:gravity="center"/>
     </com.android.camera.ui.CountDownView>
 
+    <com.android.camera.ui.BurstCountDownView
+        android:id="@+id/burst_count_down_view"
+        android:visibility="invisible"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" >
+        <TextView android:id="@+id/burst_remaining_seconds"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="invisible"
+            android:textSize="160dp"
+            android:textColor="@android:color/white"
+            android:gravity="center"/>
+
+        <com.android.camera.ui.TextProgressBar
+            android:id="@+id/burst_save_progress"
+            android:layout_width="@dimen/progress_bar_size"
+            android:layout_height="@dimen/progress_bar_size"
+            android:gravity="center"
+            android:visibility="invisible"
+            android:max="100"
+            style="@android:attr/progressBarStyleLarge"/>
+
+        <TextView
+            android:id="@+id/burst_save_message"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:visibility="invisible"
+            android:textAppearance="@style/OnScreenHintTextAppearance.Small"
+            android:textColor="#ffffffff"
+            android:shadowColor="#BB000000"
+            android:shadowRadius="2.75"
+            android:text="@string/pref_burst_saving"
+            android:background="@android:drawable/toast_frame" />
+    </com.android.camera.ui.BurstCountDownView>
+
 </FrameLayout>

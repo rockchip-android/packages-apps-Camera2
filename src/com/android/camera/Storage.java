@@ -48,7 +48,12 @@ import javax.annotation.Nonnull;
 public class Storage {
     public static final String DCIM =
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).toString();
-    public static final String DIRECTORY = DCIM + "/Camera";
+    public static String DIRECTORY = DCIM + "/Camera";
+    public static String EXTENAL_SD = "/";
+    public static String EXTERNAL_DIRECTORY = EXTENAL_SD
+            + "/" + Environment.DIRECTORY_DCIM
+            + "/Camera";
+    public static final String DEFAULT_DIRECTORY = DCIM + "/Camera";
     public static final File DIRECTORY_FILE = new File(DIRECTORY);
     public static final String JPEG_POSTFIX = ".jpg";
     public static final String GIF_POSTFIX = ".gif";
@@ -502,11 +507,32 @@ public class Storage {
         File dir = new File(DIRECTORY);
         dir.mkdirs();
         if (!dir.isDirectory() || !dir.canWrite()) {
+            Log.e(TAG, "DIRECTORY:" + dir.getPath() + " UNAVAILABLE");
             return UNAVAILABLE;
         }
 
         try {
             StatFs stat = new StatFs(DIRECTORY);
+            return stat.getAvailableBlocks() * (long) stat.getBlockSize();
+        } catch (Exception e) {
+            Log.i(TAG, "Fail to access external storage", e);
+        }
+        return UNKNOWN_SIZE;
+    }
+
+    public static long getOtherAvailableSpace() {
+        String directory = DEFAULT_DIRECTORY;
+        if (DEFAULT_DIRECTORY.equals(DIRECTORY))
+            directory = EXTERNAL_DIRECTORY;
+        File dir = new File(directory);
+        dir.mkdirs();
+        if (!dir.isDirectory() || !dir.canWrite()) {
+            Log.e(TAG, "getOtherAvailableSpace DIRECTORY:" + dir.getPath() + " UNAVAILABLE");
+            return UNAVAILABLE;
+        }
+
+        try {
+            StatFs stat = new StatFs(directory);
             return stat.getAvailableBlocks() * (long) stat.getBlockSize();
         } catch (Exception e) {
             Log.i(TAG, "Fail to access external storage", e);

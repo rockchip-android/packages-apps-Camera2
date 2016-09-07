@@ -19,6 +19,7 @@ package com.android.camera.data;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Environment;
 import android.provider.MediaStore;
 
 import com.android.camera.Storage;
@@ -32,7 +33,7 @@ import java.util.List;
  */
 public class FilmstripContentQueries {
     private static final Log.Tag TAG = new Log.Tag("LocalDataQuery");
-    private static final String CAMERA_PATH = Storage.DIRECTORY + "%";
+    private static final String CAMERA_PATH = "%" + Environment.DIRECTORY_DCIM + "/Camera%";
     private static final String SELECT_BY_PATH = MediaStore.MediaColumns.DATA + " LIKE ?";
 
     public interface CursorToFilmstripItemFactory<I extends FilmstripItem> {

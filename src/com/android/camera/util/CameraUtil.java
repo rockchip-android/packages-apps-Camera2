@@ -25,6 +25,8 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -33,6 +35,7 @@ import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.hardware.Camera.Parameters;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraMetadata;
 import android.location.Location;
@@ -50,8 +53,11 @@ import android.widget.Toast;
 import com.android.camera.CameraActivity;
 import com.android.camera.CameraDisabledException;
 import com.android.camera.FatalErrorHandler;
+import com.android.camera.app.OrientationManager;
+import com.android.camera.debug.DebugPropertyHelper;
 import com.android.camera.debug.Log;
 import com.android.camera2.R;
+import com.android.ex.camera2.portability.CameraAgent;
 import com.android.ex.camera2.portability.CameraCapabilities;
 import com.android.ex.camera2.portability.CameraSettings;
 
@@ -177,6 +183,7 @@ public class CameraUtil {
                 }
             } catch (OutOfMemoryError ex) {
                 // We have no memory to rotate. Return the original bitmap.
+                System.gc();
             }
         }
         return b;
@@ -282,6 +289,14 @@ public class CameraUtil {
         }
     }
 
+    public static AlertDialog mCameraErrorDialog;
+    public static void dismissErrorDialog() {
+        if (mCameraErrorDialog != null && mCameraErrorDialog.isShowing()) {
+            mCameraErrorDialog.dismiss();
+            mCameraErrorDialog = null;
+        }
+    }
+
     /**
      * Shows custom error dialog. Designed specifically
      * for the scenario where the camera cannot be attached.
@@ -317,14 +332,14 @@ public class CameraUtil {
         // before attempting to attach a dialog to the window manager.
         if (!activity.isFinishing()) {
             Log.e(TAG, "Show fatal error dialog");
-            new AlertDialog.Builder(activity)
+            mCameraErrorDialog = new AlertDialog.Builder(activity)
                     .setCancelable(false)
                     .setTitle(R.string.camera_error_title)
                     .setMessage(dialogMsgId)
                     .setNegativeButton(R.string.dialog_report, reportButtonListener)
                     .setPositiveButton(R.string.dialog_dismiss, buttonListener)
-                    .setIcon(out.resourceId)
-                    .show();
+                    .setIcon(out.resourceId).create();
+            mCameraErrorDialog.show();
         }
     }
 
@@ -467,6 +482,21 @@ public class CameraUtil {
         return 0;
     }
 
+    public static int roundOrientation(int orientation, int orientationHistory) {
+        boolean changeOrientation = false;
+        if (orientationHistory == OrientationEventListener.ORIENTATION_UNKNOWN) {
+            changeOrientation = true;
+        } else {
+            int dist = Math.abs(orientation - orientationHistory);
+            dist = Math.min(dist, 360 - dist);
+            changeOrientation = (dist >= 45 + ORIENTATION_HYSTERESIS);
+        }
+        if (changeOrientation) {
+            return ((orientation + 45) / 90 * 90) % 360;
+        }
+        return orientationHistory;
+    }
+
     private static Size getDefaultDisplaySize() {
         WindowManager windowManager = AndroidServices.instance().provideWindowManager();
         Point res = new Point();
@@ -550,7 +580,7 @@ public class CameraUtil {
             }
 
             double heightDiff = Math.abs(size.getHeight() - targetHeight);
-            if (heightDiff < minDiff) {
+            if (heightDiff <= minDiff) {
                 optimalSizeIndex = i;
                 minDiff = heightDiff;
             } else if (heightDiff == minDiff) {
@@ -1091,6 +1121,29 @@ public class CameraUtil {
         }
     }
 
+    public static void showOnMap(Activity activity, com.android.camera.data.Location location) {
+        try {
+            // We don't use "geo:latitude,longitude" because it only centers
+            // the MapView to the specified location, but we need a marker
+            // for further operations (routing to/from).
+            // The q=(lat, lng) syntax is suggested by geo-team.
+            String uri = String.format(Locale.ENGLISH, "http://maps.google.com/maps?f=q&q=(%f,%f)",
+                    location.getLatitude(), location.getLongitude());
+            ComponentName compName = new ComponentName(MAPS_PACKAGE_NAME,
+                    MAPS_CLASS_NAME);
+            Intent mapsIntent = new Intent(Intent.ACTION_VIEW,
+                    Uri.parse(uri)).setComponent(compName);
+            mapsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
+            activity.startActivity(mapsIntent);
+        } catch (ActivityNotFoundException e) {
+            // Use the "geo intent" if no GMM is installed
+            Log.e(TAG, "GMM activity not found!", e);
+            String url = String.format(Locale.ENGLISH, "geo:%f,%f", location.getLatitude(), location.getLongitude());
+            Intent mapsIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            activity.startActivity(mapsIntent);
+        }
+    }
+
     /**
      * Dumps the stack trace.
      *
@@ -1313,4 +1366,117 @@ public class CameraUtil {
         }
         return (sensorOrientation + deviceOrientation) % 360;
     }
+
+    public static Parameters getParameters(CameraAgent.CameraProxy camera) {
+        if (camera != null) {
+            Parameters parameters = null;
+            while (parameters == null) {
+                try {
+                    parameters = camera.getParameters();
+                    if (parameters != null) return parameters;
+                } catch (Exception e) {
+                    Log.e(TAG, "getParameters error:" + e);
+                }
+            }
+        }
+        return null;
+    }
+
+    public final static boolean AUTO_ROTATE_SENSOR = DebugPropertyHelper.isPreviewAutoRotate();
+    public static int mDisplayRotation;
+    public static int mOrientation;
+    public static int mRawOrientation;
+    public static int mLastUIRotatedRawOrientation;
+    public static int mLastOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
+    public static int mUIRotated;
+    public static int mScreenOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+    public static boolean mIsPortrait = true;
+    public static void calculateCurrentScreenOrientation(int oldOrientation, 
+            int newOrientation, Activity activity) {
+        Log.d(TAG, "current mDisplayRotation = " + mDisplayRotation
+                + ",mOrientation = " + mOrientation
+                + ",mUIRotated = " + mUIRotated
+                + ",mScreenOrientation = " + mScreenOrientation
+                + ",mIsPortrait = " + mIsPortrait);
+        int displayRotation = getDisplayRotation();
+        // Display rotation >= 180 means we need to use the REVERSE landscape/portrait
+        boolean standard = displayRotation < 180;
+        int screenOrientation;
+        if (activity.getResources().getConfiguration().orientation
+                == Configuration.ORIENTATION_LANDSCAPE) {
+            screenOrientation = standard
+                    ? ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                            : ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+        } else {
+            if (displayRotation == 90 || displayRotation == 270) {
+                // If displayRotation = 90 or 270 then we are on a landscape
+                // device. On landscape devices, portrait is a 90 degree
+                // clockwise rotation from landscape, so we need
+                // to flip which portrait we pick as display rotation is counter clockwise
+                standard = !standard;
+            }
+            screenOrientation = standard
+                    ? ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                            : ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT;
+        }
+
+        int rotated = ((newOrientation - displayRotation) + 360) % 360;
+        if (rotated == 180) {
+            if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+                screenOrientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT;
+            else if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT)
+                screenOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+            else if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+                screenOrientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+            else if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE)
+                screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+        }
+        if (rotated == 90) {
+            if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+                screenOrientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+            else if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT)
+                screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+            else if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+                screenOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+            else if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE)
+                screenOrientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT;
+        }
+        if (rotated == 270) {
+            if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+                screenOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+            else if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT)
+                screenOrientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE;
+            else if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+                screenOrientation = ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT;
+            else if (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE)
+                screenOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+        }
+        mDisplayRotation = displayRotation;
+        mOrientation = newOrientation;
+        if (newOrientation == 0 && oldOrientation == 270)
+            newOrientation = 360;
+        else if (newOrientation == 270 && oldOrientation == 0)
+            oldOrientation = 360;
+        mUIRotated += (newOrientation - oldOrientation);
+        mScreenOrientation = screenOrientation;
+        mIsPortrait = (screenOrientation == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT ||
+                screenOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT) ? true : false;
+        Log.d(TAG, "calculate mDisplayRotation = " + mDisplayRotation
+                + ",mOrientation = " + mOrientation
+                + ",mUIRotated = " + mUIRotated
+                + ",mScreenOrientation = " + mScreenOrientation
+                + ",mIsPortrait = " + mIsPortrait);
+    }
+
+    public static void cleanOrientationParameters() {
+        mDisplayRotation = 0;
+        mOrientation = 0;
+        mRawOrientation = 0;
+        mLastUIRotatedRawOrientation = 0;
+        mLastOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
+        mUIRotated = 0;
+        mScreenOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+        mIsPortrait = true;
+    }
+
 }

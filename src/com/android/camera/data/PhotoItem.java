@@ -102,6 +102,10 @@ public class PhotoItem extends FilmstripItemBase<FilmstripItemData> {
             MediaDetails mediaDetails = optionalDetails.get();
             MediaDetails.extractExifInfo(mediaDetails, mData.getFilePath());
             mediaDetails.addDetail(MediaDetails.INDEX_ORIENTATION, mData.getOrientation());
+            int width = mData.getOrientation() % 180 == 0 ? mData.getDimensions().getWidth() : mData.getDimensions().getHeight();
+            int height = mData.getOrientation() % 180 == 0 ? mData.getDimensions().getHeight() : mData.getDimensions().getWidth();
+            mediaDetails.addDetail(MediaDetails.INDEX_WIDTH, width);
+            mediaDetails.addDetail(MediaDetails.INDEX_HEIGHT, height);
         }
         return optionalDetails;
     }

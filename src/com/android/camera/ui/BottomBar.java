@@ -17,7 +17,9 @@
 package com.android.camera.ui;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.content.res.TypedArray;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.ColorDrawable;
@@ -25,11 +27,15 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.TransitionDrawable;
 import android.util.AttributeSet;
+import android.view.Display;
 import android.view.MotionEvent;
 import android.view.TouchDelegate;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 
 import com.android.camera.CaptureLayoutHelper;
 import com.android.camera.ShutterButton;
@@ -64,9 +70,11 @@ public class BottomBar extends FrameLayout {
 
     private FrameLayout mCaptureLayout;
     private FrameLayout mCancelLayout;
+    private LinearLayout mButtonsLayout;
     private TopRightWeightedLayout mIntentReviewLayout;
 
     private ShutterButton mShutterButton;
+    private ImageView mShutterButtonIcon;
     private ImageButton mCancelButton;
 
     private int mBackgroundColor;
@@ -171,6 +179,8 @@ public class BottomBar extends FrameLayout {
         mCancelLayout =
                 (FrameLayout) findViewById(R.id.bottombar_cancel);
         mCancelLayout.setVisibility(View.GONE);
+        
+        mButtonsLayout = (LinearLayout) findViewById(R.id.bottombar_button_layout);
 
         mIntentReviewLayout =
                 (TopRightWeightedLayout) findViewById(R.id.bottombar_intent_review);
@@ -194,6 +204,7 @@ public class BottomBar extends FrameLayout {
                 return false;
             }
         });
+        mShutterButtonIcon = (ImageView) findViewById(R.id.shutter_button_icon);
 
         mCancelButton =
                 (ImageButton) findViewById(R.id.shutter_cancel_button);
@@ -216,6 +227,12 @@ public class BottomBar extends FrameLayout {
         });
 
         extendTouchAreaToMatchParent(R.id.done_button);
+        
+        mColorButton = (ImageButton) findViewById(R.id.color_button);
+        mSceneButton = (ImageButton) findViewById(R.id.scene_button);
+        mColorButton.setOnClickListener(mButtonOnClickListener);
+        mSceneButton.setOnClickListener(mButtonOnClickListener);
+        checkOrientation(getResources().getConfiguration().orientation);
     }
 
     private void extendTouchAreaToMatchParent(int id) {
@@ -345,7 +362,14 @@ public class BottomBar extends FrameLayout {
         final int measureWidth = MeasureSpec.getSize(widthMeasureSpec);
         final int measureHeight = MeasureSpec.getSize(heightMeasureSpec);
         if (measureWidth == 0 || measureHeight == 0) {
-            return;
+            Log.e(TAG, "measureWidth&&height = " + measureWidth + "," + measureHeight);
+            Display currentDisplay = ((WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE))
+                    .getDefaultDisplay();
+            Point displaySize = new Point();
+            currentDisplay.getSize(displaySize);
+            widthMeasureSpec = MeasureSpec.makeMeasureSpec(displaySize.x, MeasureSpec.EXACTLY);
+            heightMeasureSpec = MeasureSpec.makeMeasureSpec(displaySize.y, MeasureSpec.EXACTLY);
+            //return;
         }
 
         if (mCaptureLayoutHelper == null) {
@@ -448,9 +472,14 @@ public class BottomBar extends FrameLayout {
             @Override
             public void run() {
                 mShutterButton.setEnabled(enabled);
+                mShutterButtonIcon.setEnabled(enabled);
                 setShutterButtonImportantToA11y(enabled);
             }
         });
+    }
+
+    public void setShutterButtonLongClickEnabled(final boolean enabled) {
+        mShutterButton.setLongClickable(enabled);
     }
 
     /**
@@ -494,7 +523,7 @@ public class BottomBar extends FrameLayout {
         if (iconDrawable != null) {
             iconDrawable = iconDrawable.mutate();
         }
-        mShutterButton.setImageDrawable(iconDrawable);
+        mShutterButtonIcon.setImageDrawable(iconDrawable);
     }
 
     /**
@@ -507,9 +536,9 @@ public class BottomBar extends FrameLayout {
         }
 
         TransitionDrawable transitionDrawable = crossfadeDrawable(
-                mShutterButton.getDrawable(),
+                mShutterButtonIcon.getDrawable(),
                 getResources().getDrawable(resId));
-        mShutterButton.setImageDrawable(transitionDrawable);
+        mShutterButtonIcon.setImageDrawable(transitionDrawable);
         transitionDrawable.startTransition(CIRCLE_ANIM_DURATION_MS);
     }
 
@@ -523,9 +552,85 @@ public class BottomBar extends FrameLayout {
         }
 
         TransitionDrawable transitionDrawable = crossfadeDrawable(
-                mShutterButton.getDrawable(),
+                mShutterButtonIcon.getDrawable(),
                 getResources().getDrawable(resId));
-        mShutterButton.setImageDrawable(transitionDrawable);
+        mShutterButtonIcon.setImageDrawable(transitionDrawable);
         transitionDrawable.startTransition(CIRCLE_ANIM_DURATION_MS);
+    }
+
+    @Override
+    protected void onConfigurationChanged(Configuration newConfig) {
+        // TODO Auto-generated method stub
+        Log.i(TAG, "onConfigurationChanged");
+        super.onConfigurationChanged(newConfig);
+        final boolean isPortrait = (Configuration.ORIENTATION_PORTRAIT == newConfig.orientation);
+        if (isPortrait) {
+            mButtonsLayout.setOrientation(LinearLayout.HORIZONTAL);
+        } else {
+            mButtonsLayout.setOrientation(LinearLayout.VERTICAL);
+        }
+        requestLayout();
+    }
+
+    /**
+     * Set the orientation of this layout if it has changed,
+     * and center the elements based on the new orientation.
+     */
+    public void checkOrientation(int orientation) {
+        final boolean isHorizontal = LinearLayout.HORIZONTAL == mButtonsLayout.getOrientation();
+        final boolean isPortrait = Configuration.ORIENTATION_PORTRAIT == orientation;
+        Log.i(TAG, "isHorizontal = " + isHorizontal + ", isPortrait = " + isPortrait);
+        if (isPortrait && !isHorizontal) {
+            // Portrait orientation is out of sync, setting to horizontal
+            // and reversing children
+            mButtonsLayout.setOrientation(LinearLayout.HORIZONTAL);
+            requestLayout();
+        } else if (!isPortrait && isHorizontal) {
+            // Landscape orientation is out of sync, setting to vertical
+            // and reversing children
+            mButtonsLayout.setOrientation(LinearLayout.VERTICAL);
+            requestLayout();
+        }
+    }
+
+    private ImageButton mColorButton;
+    private ImageButton mSceneButton;
+    private BottomBarButtonClickListener mBottomBarButtonClickListener;
+
+    public void setBottomBarButtonClickListener(BottomBarButtonClickListener listener) {
+        mBottomBarButtonClickListener = listener;
+    }
+
+    public interface BottomBarButtonClickListener {
+        public void ColorButtonOnClick();
+        public void SceneButtonOnClick();
+    }
+
+    private View.OnClickListener mButtonOnClickListener = new View.OnClickListener() {
+
+        @Override
+        public void onClick(View v) {
+            // TODO Auto-generated method stub
+            switch (v.getId()) {
+            case R.id.color_button:
+                if (mBottomBarButtonClickListener != null)
+                    mBottomBarButtonClickListener.ColorButtonOnClick();
+                break;
+
+            case R.id.scene_button:
+                if (mBottomBarButtonClickListener != null)
+                    mBottomBarButtonClickListener.SceneButtonOnClick();
+                break;
+
+            default:
+                break;
+            }
+        }
+    };
+
+    public void updateUIByOrientation() {
+        mShutterButtonIcon.setRotation(CameraUtil.mUIRotated);
+        for (int i = 0; i < mIntentReviewLayout.getChildCount(); i++)
+            mIntentReviewLayout.getChildAt(i).setRotation(CameraUtil.mUIRotated);
     }
 }

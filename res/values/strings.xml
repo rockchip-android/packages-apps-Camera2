@@ -405,7 +405,7 @@
     <string name="dialog_dismiss">Dismiss</string>
 
     <!-- Low-memory dialog message [CHAR LIMIT=NONE] -->
-    <string name="spaceIsLow_content" product="default">Your SD card is running out of space. Change the quality setting or delete some images or other files.</string>
+    <string name="spaceIsLow_content" product="default">Your device is running out of space. Change the quality setting or delete some images or other files.</string>
 
     <!-- Camera format string for new image files. Passed to java.text.SimpleDateFormat. -->
     <string name="image_file_name_format" translatable="false">"'IMG'_yyyyMMdd_HHmmss"</string>
@@ -960,4 +960,80 @@
 
     <!-- Shown to the user while an image/video is being saved to disk. -->
     <string name="session_saving_image">Saving\u2026</string>
+    
+    <string name="scene_mode_auto">Auto</string>
+    <string name="scene_mode_portrait">Portrait</string>
+    <string name="scene_mode_landscape">Landscape</string>
+    <string name="scene_mode_night">Night</string>
+    <string name="scene_mode_sports">Sports</string>
+    <string name="scene_mode_barcode">Barcode</string>
+
+    <string name="pref_camera_color_effect_default" translatable="false">none</string>
+    <string name="pref_camera_saturation_default" translatable="false">normal</string>
+    <string name="pref_camera_contrast_default" translatable="false">normal</string>
+    <string name="pref_camera_brightness_default" translatable="false">normal</string>
+    <string name="pref_camera_sharpness_default" translatable="false">normal</string>
+    <string name="pref_camera_hue_default" translatable="false">normal</string>
+
+    <string name="pref_camera_sound_title">Capture Sound</string>
+
+    <string name="pref_burst_saving">Burst Capture Saving, Please wait...</string>
+    <string name="pref_burst_finish">Burst Capture Finish</string>
+
+    <string name="pref_busrt_capture_on_title" translatable="false">ZSL</string>
+    <string name="pref_preview_fullsize_title">Fullsize Preview</string>
+
+    <string name="color_none">Normal</string>
+    <string name="color_mono">Mono</string>
+    <string name="color_negative">Negative</string>
+    <string name="color_sepia">Sepia</string>
+
+    <!-- Accessibility text for zsl toggle button states [CHAR_LIMIT=NONE] -->
+    <string name="zsl_off_desc">ZSL off</string>
+    <string name="zsl_on_desc">ZSL on</string>
+
+    <!-- Accessibility text for smile shutter toggle button states [CHAR_LIMIT=NONE] -->
+    <string name="smile_shutter_off_desc">Smile Shutter off</string>
+    <string name="smile_shutter_on_desc">Smile Shutter on</string>
+
+    <string name="exposure_options_lable">Exposure</string>
+    <string name="saturation_options_lable">Saturation</string>
+    <string name="contrast_options_lable">Contrast</string>
+    <string name="brightness_options_lable">Brightness</string>
+    <string name="sharpness_options_lable">Sharpness</string>
+    <string name="hue_options_lable">Hue</string>
+
+    <string name="pref_camera_screen_effects">Color Processing</string>
+
+    <string name="smile_shutter_tip">&#160;&#160;&#160;After press shutterButton, Taking picture\nautomatically when camera finds smile face.</string>
+
+    <string name="pref_restore_default_settings_title">Restore Default Settings</string>
+    <string name="pref_restore_default_settings_msg">Restore Camera Default Settings?</string>
+
+    <string name="pref_antibanding_off" translatable="false">off</string>
+    <string name="pref_antibanding_50hz" translatable="false">50hz</string>
+    <string name="pref_antibanding_60hz" translatable="false">60hz</string>
+    <string name="pref_antibanding_auto" translatable="false">auto</string>
+    <string name="setting_camera_antibanding">Anti-banding</string>
+    <string name="setting_antibanding_off_summary">Off</string>
+    <string name="setting_antibanding_50hz_summary">50 HZ</string>
+    <string name="setting_antibanding_60hz_summary">60 HZ</string>
+    <string name="setting_antibanding_auto_summary">Auto</string>
+
+    <string name="back_to_exit_msg">Press again to exit</string>
+    <string name="gallery_name">Gallery</string>
+
+    <string name="pref_face_detection_enabled_title">Face detection</string>
+    <string name="smile_shutter_auto_tip">Taking picture automatically when camera finds smile face</string>
+
+    <string name="setting_media_save_path">Picture and Video Save Location</string>
+    <string name="pref_media_save_path_flash" translatable="false">flash</string>
+    <string name="pref_media_save_path_external_sd" translatable="false">external_sd</string>
+    <string name="media_save_path_flash_label">Camera default storage</string>
+    <string name="media_save_path_external_sd_label">External SD</string>
+    <string name="external_sd_unmounted">External SD Unmounted</string>
+    <string name="external_sd_pull_out">External SD pull out,Exit Camera</string>
+    <!-- Low-memory dialog message [CHAR LIMIT=NONE] -->
+    <string name="flash_spaceIsLow_content" product="default">Your Default Storage is running out of space. Change Storage To External SD.</string>
+    <string name="exsd_spaceIsLow_content" product="default">Your External SD is running out of space. Change Storage To Default Storage.</string>
  </resources>

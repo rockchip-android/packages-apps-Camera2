@@ -66,6 +66,10 @@ class FilmstripBottomPanel implements CameraAppUI.BottomPanel {
         setupProgressUi();
     }
 
+    public ViewGroup getLayout() {
+        return mLayout;
+    }
+
     @Override
     public void setListener(Listener listener) {
         mListener = listener;

@@ -16,18 +16,28 @@
 
 package com.android.camera.widget;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.android.camera.ButtonManager;
 import com.android.camera.app.AppController;
+import com.android.camera.debug.DebugPropertyHelper;
 import com.android.camera.debug.Log;
 import com.android.camera.settings.Keys;
 import com.android.camera.settings.SettingsManager;
+import com.android.camera.util.CameraUtil;
+import com.android.camera.util.Gusterpolator;
 import com.android.camera.util.PhotoSphereHelper;
+import com.android.ex.camera2.portability.CameraCapabilities;
 import com.android.camera2.R;
 
 /**
@@ -47,11 +57,20 @@ public class IndicatorIconController
     private ImageView mHdrIndicator;
     private ImageView mPanoIndicator;
     private ImageView mCountdownTimerIndicator;
+    private ImageView mZslIndicator;
+    private ImageView mSmileShutterIndicator;
 
     private ImageView mExposureIndicatorN2;
     private ImageView mExposureIndicatorN1;
     private ImageView mExposureIndicatorP1;
     private ImageView mExposureIndicatorP2;
+    
+    private ImageView mWbIndicatorCloudy;
+    private ImageView mWbIndicatorFluorescent;
+    private ImageView mWbIndicatorTungsten;
+    private ImageView mWbIndicatorDaylight;
+
+    private LinearLayout mModeOptionsToggle;
 
     private TypedArray mFlashIndicatorPhotoIcons;
     private TypedArray mFlashIndicatorVideoIcons;
@@ -59,12 +78,19 @@ public class IndicatorIconController
     private TypedArray mHdrIndicatorIcons;
     private TypedArray mPanoIndicatorIcons;
     private TypedArray mCountdownTimerIndicatorIcons;
+    private TypedArray mZslIndicatorIcons;
+    private TypedArray mSmileShutterIndicatorIcons;
 
     private AppController mController;
+    
+    private TextView mSmileShutterTip;
+    private AnimatorSet mSmileShutterAnimator;
 
     public IndicatorIconController(AppController controller, View root) {
         mController = controller;
         Context context = controller.getAndroidContext();
+
+        mModeOptionsToggle = (LinearLayout) root.findViewById(R.id.mode_options_toggle);
 
         mFlashIndicator = (ImageView) root.findViewById(R.id.flash_indicator);
         mFlashIndicatorPhotoIcons = context.getResources().obtainTypedArray(
@@ -88,11 +114,29 @@ public class IndicatorIconController
         mCountdownTimerIndicator = (ImageView) root.findViewById(R.id.countdown_timer_indicator);
         mCountdownTimerIndicatorIcons = context.getResources().obtainTypedArray(
                 R.array.pref_camera_countdown_indicators);
+        
+        mZslIndicator = (ImageView) root.findViewById(R.id.zsl_indicator);
+        mZslIndicatorIcons = context.getResources().obtainTypedArray(
+                R.array.zsl_indicator_icons);
+        
+        mSmileShutterIndicator = (ImageView) root.findViewById(R.id.smile_shutter_indicator);
+        mSmileShutterIndicatorIcons = context.getResources().obtainTypedArray(
+                R.array.smile_shutter_indicator_icons);
 
         mExposureIndicatorN2 = (ImageView) root.findViewById(R.id.exposure_n2_indicator);
         mExposureIndicatorN1 = (ImageView) root.findViewById(R.id.exposure_n1_indicator);
         mExposureIndicatorP1 = (ImageView) root.findViewById(R.id.exposure_p1_indicator);
         mExposureIndicatorP2 = (ImageView) root.findViewById(R.id.exposure_p2_indicator);
+        
+        mWbIndicatorCloudy = (ImageView) root.findViewById(R.id.wb_cloudy_indicator);
+        mWbIndicatorFluorescent = (ImageView) root.findViewById(R.id.wb_fluorescent_indicator);
+        mWbIndicatorTungsten = (ImageView) root.findViewById(R.id.wb_tungsten_indicator);
+        mWbIndicatorDaylight = (ImageView) root.findViewById(R.id.wb_daylight_indicator);
+        
+        mSmileShutterTip = (TextView) root.findViewById(R.id.smile_shutter_tip);
+        if (DebugPropertyHelper.isSmileShutterAuto())
+            mSmileShutterTip.setText(R.string.smile_shutter_auto_tip);
+        setupSmileShutterAnimator();
     }
 
     @Override
@@ -131,6 +175,10 @@ public class IndicatorIconController
                 syncExposureIndicator();
                 break;
             }
+            case ButtonManager.BUTTON_WHITEBALANCE: {
+                syncWhiteBalanceIndicator();
+                break;
+            }
             default:
                 // Do nothing.  The indicator doesn't care
                 // about button that don't correspond to indicators.
@@ -147,6 +195,9 @@ public class IndicatorIconController
         syncPanoIndicator();
         syncExposureIndicator();
         syncCountdownTimerIndicator();
+        syncZslIndicator();
+        syncSmileShutterIndicator();
+        syncWhiteBalanceIndicator();
     }
 
     /**
@@ -278,6 +329,42 @@ public class IndicatorIconController
         }
     }
 
+    private void syncWhiteBalanceIndicator() {
+        if (mWbIndicatorCloudy == null
+            || mWbIndicatorFluorescent == null
+            || mWbIndicatorTungsten == null
+            || mWbIndicatorDaylight == null) {
+            Log.w(TAG, "Trying to sync whitebalance indicators that are not initialized.");
+            return;
+        }
+
+        changeVisibility(mWbIndicatorCloudy, View.GONE);
+        changeVisibility(mWbIndicatorFluorescent, View.GONE);
+        changeVisibility(mWbIndicatorTungsten, View.GONE);
+        changeVisibility(mWbIndicatorDaylight, View.GONE);
+
+        ButtonManager buttonManager = mController.getButtonManager();
+        if (buttonManager.isEnabled(ButtonManager.BUTTON_WHITEBALANCE)
+                && buttonManager.isVisible(ButtonManager.BUTTON_WHITEBALANCE)) {
+            CameraCapabilities cameraCapabilities = buttonManager.getCameraCapabilities();
+            String value = mController.getSettingsManager().getString(
+                    mController.getCameraScope(), Keys.KEY_WHITEBALANCE);
+            if (cameraCapabilities.getStringifier().stringify(CameraCapabilities.WhiteBalance.CLOUDY_DAYLIGHT)
+                    .equals(value)) {
+                changeVisibility(mWbIndicatorCloudy, View.VISIBLE);
+            } else if (cameraCapabilities.getStringifier().stringify(CameraCapabilities.WhiteBalance.FLUORESCENT)
+                        .equals(value)) {
+                changeVisibility(mWbIndicatorFluorescent, View.VISIBLE);
+            } else if (cameraCapabilities.getStringifier().stringify(CameraCapabilities.WhiteBalance.INCANDESCENT)
+                        .equals(value)) {
+                changeVisibility(mWbIndicatorTungsten, View.VISIBLE);
+            } else if (cameraCapabilities.getStringifier().stringify(CameraCapabilities.WhiteBalance.DAYLIGHT)
+                        .equals(value)) {
+                changeVisibility(mWbIndicatorDaylight, View.VISIBLE);
+            }
+        }
+    }
+
     private void syncCountdownTimerIndicator() {
         ButtonManager buttonManager = mController.getButtonManager();
 
@@ -288,6 +375,82 @@ public class IndicatorIconController
                               mCountdownTimerIndicatorIcons, false);
         } else {
             changeVisibility(mCountdownTimerIndicator, View.GONE);
+        }
+    }
+
+    private void syncZslIndicator() {
+        ButtonManager buttonManager = mController.getButtonManager();
+
+        if (buttonManager.isEnabled(ButtonManager.BUTTON_ZSL)
+            && buttonManager.isVisible(ButtonManager.BUTTON_ZSL)) {
+            setIndicatorState(SettingsManager.SCOPE_GLOBAL,
+                              Keys.KEY_BURST_CAPTURE_ON, mZslIndicator,
+                              mZslIndicatorIcons, false);
+            SettingsManager settingsManager = mController.getSettingsManager();
+            if (settingsManager.getBoolean(SettingsManager.SCOPE_GLOBAL, Keys.KEY_BURST_CAPTURE_ON))
+                changeVisibility(mZslIndicator, View.VISIBLE);
+            else
+                changeVisibility(mZslIndicator, View.GONE);
+        } else {
+            changeVisibility(mZslIndicator, View.GONE);
+        }
+    }
+
+    private void syncSmileShutterIndicator() {
+        ButtonManager buttonManager = mController.getButtonManager();
+
+        if (buttonManager.isEnabled(ButtonManager.BUTTON_SMILE_SHUTTER)
+            && buttonManager.isVisible(ButtonManager.BUTTON_SMILE_SHUTTER)) {
+            setIndicatorState(SettingsManager.SCOPE_GLOBAL,
+                              Keys.KEY_SMILE_SHUTTER_ON, mSmileShutterIndicator,
+                              mSmileShutterIndicatorIcons, false);
+        } else {
+            changeVisibility(mSmileShutterIndicator, View.GONE);
+        }
+        if (mSmileShutterIndicator.getVisibility() == View.VISIBLE) {
+            mSmileShutterTip.setVisibility(View.VISIBLE);
+        } else {
+            mSmileShutterTip.setVisibility(View.GONE);
+        }
+    }
+
+    private void setupSmileShutterAnimator() {
+        if (mSmileShutterAnimator != null) {
+            mSmileShutterAnimator.end();
+        }
+        final ValueAnimator alphaAnimator = ValueAnimator.ofFloat(1.0f, 0.0f);
+        alphaAnimator.setDuration(800);
+        alphaAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        alphaAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator animation) {
+                mSmileShutterIndicator.setAlpha((Float) animation.getAnimatedValue());
+                mSmileShutterIndicator.invalidate();
+            }
+        });
+        alphaAnimator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mSmileShutterIndicator.setAlpha(0.0f);
+                mSmileShutterIndicator.invalidate();
+            }
+        });
+        
+        mSmileShutterAnimator = new AnimatorSet();
+        mSmileShutterAnimator.setInterpolator(Gusterpolator.INSTANCE);
+        mSmileShutterAnimator.play(alphaAnimator);
+    }
+
+    public void smileShutterAnimator(boolean on) {
+        Log.i(TAG,"smileShutterAnimator on = " + on);
+        if (mSmileShutterAnimator == null) return;
+        if (on) {
+            mSmileShutterIndicator.setAlpha(1.0f);
+            mSmileShutterAnimator.end();
+            mSmileShutterAnimator.start();
+        } else {
+            mSmileShutterAnimator.end();
+            mSmileShutterIndicator.setAlpha(1.0f);
         }
     }
 
@@ -353,6 +516,32 @@ public class IndicatorIconController
             syncCountdownTimerIndicator();
             return;
         }
+        if (key.equals(Keys.KEY_BURST_CAPTURE_ON)) {
+            syncZslIndicator();
+            return;
+        }
+        if (key.equals(Keys.KEY_SMILE_SHUTTER_ON)) {
+            syncSmileShutterIndicator();
+            return;
+        }
+        if (key.equals(Keys.KEY_WHITEBALANCE)) {
+            syncWhiteBalanceIndicator();
+            return;
+        }
+    }
+
+    public void updateUIByOrientation() {
+        if (CameraUtil.AUTO_ROTATE_SENSOR) return;
+        if (CameraUtil.mIsPortrait) {
+            mModeOptionsToggle.setTranslationX(0.0f);
+            mModeOptionsToggle.setTranslationY(0.0f);
+        } else {
+            mModeOptionsToggle.setTranslationX((mModeOptionsToggle.getWidth() - mModeOptionsToggle.getHeight())
+                    / 2.0f);
+            mModeOptionsToggle.setTranslationY((mModeOptionsToggle.getHeight() - mModeOptionsToggle.getWidth())
+                    / 2.0f);
+        }
+        mModeOptionsToggle.setRotation(CameraUtil.mUIRotated);
     }
 
 }

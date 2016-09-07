@@ -20,8 +20,8 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.util.AttributeSet;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
 import java.util.ArrayList;
@@ -47,13 +47,109 @@ public class TopRightWeightedLayout extends LinearLayout {
     public void onConfigurationChanged(Configuration configuration) {
         super.onConfigurationChanged(configuration);
         checkOrientation(configuration.orientation);
+        scrollTo(0, 0);
+    }
+
+    private int mInvisibleLenght;
+    private float mLastX;
+    private float mLastY;
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        // TODO Auto-generated method stub
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+            mLastX = event.getX();
+            mLastY = event.getY();
+        } else {
+            if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
+                int direction = getOrientation();
+                if (direction == LinearLayout.HORIZONTAL) {
+                    if (event.getX() - mLastX >= 0) {//right
+                        int scrollX = getScrollX();
+                        float scrollTo = scrollX - (event.getX() - mLastX);
+                        float scrollBy = Math.abs(scrollTo) > mInvisibleLenght / 2
+                                ? (Math.abs(scrollTo) - mInvisibleLenght / 2) - (event.getX() - mLastX)
+                                : - (event.getX() - mLastX);
+                        if (Math.abs(scrollBy) > 2.0f)
+                            scrollBy((int) scrollBy, 0);
+                    } else if (event.getX() - mLastX < 0) {//left
+                        int scrollX = getScrollX();
+                        float scrollTo = scrollX - (event.getX() - mLastX);
+                        float scrollBy = Math.abs(scrollTo) > mInvisibleLenght / 2
+                                ? (event.getX() - mLastX) + (Math.abs(scrollTo) - mInvisibleLenght / 2)
+                                : - (event.getX() - mLastX);
+                        if (Math.abs(scrollBy) > 2.0f)
+                            scrollBy((int) scrollBy, 0);
+                    }
+                } else if (direction == LinearLayout.VERTICAL) {
+                    if (event.getY() - mLastY >= 0) {//down
+                        int scrollY = getScrollY();
+                        float scrollTo = scrollY - (event.getY() - mLastY);
+                        float scrollBy = Math.abs(scrollTo) > mInvisibleLenght / 2
+                                ? (Math.abs(scrollTo) - mInvisibleLenght / 2) - (event.getY() - mLastY)
+                                : - (event.getY() - mLastY);
+                        if (Math.abs(scrollBy) > 2.0f)
+                            scrollBy(0, (int) scrollBy);
+                    } else if (event.getY() - mLastY < 0) {//up
+                        int scrollY = getScrollY();
+                        float scrollTo = scrollY - (event.getY() - mLastY);
+                        float scrollBy = Math.abs(scrollTo) > mInvisibleLenght / 2
+                                ? (event.getY() - mLastY) + (Math.abs(scrollTo) - mInvisibleLenght / 2)
+                                : - (event.getY() - mLastY);
+                        if (Math.abs(scrollBy) > 2.0f)
+                            scrollBy(0, (int) scrollBy);
+                    }
+                }
+            }
+            mLastX = event.getX();
+            mLastY = event.getY();
+        }
+        return super.onTouchEvent(event);
+    }
+    
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        // TODO Auto-generated method stub
+        super.onLayout(changed, l, t, r, b);
+        computeScrollZone(getOrientation());
+    }
+
+    private void computeScrollZone(int direction) {
+        if (direction == LinearLayout.HORIZONTAL) {
+            int VisibleChildViewLenght = 0;
+            int VisibleLenght = getWidth();
+            for (int i = getChildCount() - 1; i >= 0; i--) {
+                View child = getChildAt(i);
+                if (child.getVisibility() == View.VISIBLE) {
+                    LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) child.getLayoutParams();
+                    VisibleChildViewLenght += (child.getWidth() + lp.leftMargin + lp.rightMargin);
+                }
+            }
+            mInvisibleLenght = VisibleChildViewLenght - VisibleLenght;
+        } else if (direction == LinearLayout.VERTICAL) {
+            int VisibleChildViewLenght = 0;
+            int VisibleLenght = getHeight();
+            for (int i = getChildCount() - 1; i >= 0; i--) {
+                View child = getChildAt(i);
+                if (child.getVisibility() == View.VISIBLE) {
+                    LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) child.getLayoutParams();
+                    VisibleChildViewLenght += (child.getHeight() + lp.topMargin + lp.bottomMargin);
+                }
+            }
+            mInvisibleLenght = VisibleChildViewLenght - VisibleLenght;
+        }
+    }
+
+    public boolean isScrollable() {
+        if (mInvisibleLenght > 0)
+            return true;
+        return false;
     }
 
     /**
      * Set the orientation of this layout if it has changed,
      * and center the elements based on the new orientation.
      */
-    private void checkOrientation(int orientation) {
+    public void checkOrientation(int orientation) {
         final boolean isHorizontal = LinearLayout.HORIZONTAL == getOrientation();
         final boolean isPortrait = Configuration.ORIENTATION_PORTRAIT == orientation;
         if (isPortrait && !isHorizontal) {

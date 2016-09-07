@@ -18,26 +18,36 @@ package com.android.camera;
 
 import android.app.Dialog;
 import android.content.DialogInterface;
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera.Face;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
 
 import com.android.camera.captureintent.PictureDecoder;
+import com.android.camera.app.CameraAppUI;
 import com.android.camera.debug.DebugPropertyHelper;
 import com.android.camera.debug.Log;
+import com.android.camera.ui.BurstCountDownView;
 import com.android.camera.ui.CountDownView;
 import com.android.camera.ui.FaceView;
 import com.android.camera.ui.PreviewOverlay;
 import com.android.camera.ui.PreviewStatusListener;
 import com.android.camera.ui.focus.FocusRing;
+import com.android.camera.util.CameraUtil;
+import com.android.camera.widget.VerticalSeekBar;
 import com.android.camera2.R;
 import com.android.ex.camera2.portability.CameraAgent;
 import com.android.ex.camera2.portability.CameraCapabilities;
@@ -69,14 +79,95 @@ public class PhotoUI implements PreviewStatusListener,
     private float mAspectRatio = UNSET;
 
     private ImageView mIntentReviewImageView;
+    private RectF mPreviewArea;
+
+    private final int HIDE_MANUAL_FOCUS_BAR = 0;
+    private Handler mHandler = new Handler() {
+        public void dispatchMessage(android.os.Message msg) {
+            if (msg.what == HIDE_MANUAL_FOCUS_BAR) {
+                hideManualFocusBar();
+            }
+        };
+    };
+
+    private final View.OnTouchListener mPreviewOnTouchListener 
+            = new View.OnTouchListener() {
+        private float mLastY;
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            if (!CameraUtil.AUTO_ROTATE_SENSOR) {
+                if (CameraUtil.mScreenOrientation
+                        == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE) {
+                    event.setLocation(event.getY(), mPreviewOverlay.getWidth() - event.getX());
+                } else if (CameraUtil.mScreenOrientation
+                        == ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT) {
+                    event.setLocation(mPreviewOverlay.getWidth() - event.getX(),
+                            mPreviewOverlay.getHeight() - event.getY());
+                } else if (CameraUtil.mScreenOrientation
+                        == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+                    event.setLocation(mPreviewOverlay.getHeight() - event.getY(), event.getX());
+                }
+            }
+            // TODO Auto-generated method stub
+            if (!mController.isManualFocusEnabled()) return false;
+            if (event.getPointerCount() > 1) {
+                hideManualFocusBar();
+                return false;
+            }
+            int swipeState = mActivity.getCameraAppUI().getSwipeState();
+            if (swipeState == CameraAppUI.SWIPE_DOWN || swipeState == CameraAppUI.SWIPE_UP) {
+                View parent = (View) mManualFocusBar.getParent();
+                if (parent.getVisibility() == View.VISIBLE) {
+                    if (event.getActionMasked() == MotionEvent.ACTION_MOVE) {
+                        float distanceY = mLastY - event.getY();
+                        int offsetProgress = (int) ((float) distanceY / (float) mPreviewOverlay.getHeight()
+                                * (float) mManualFocusBar.getMax());
+                        mManualFocusBar.setProgress(mManualFocusBar.getProgress() + offsetProgress);
+                    }
+                }
+            } else if (swipeState == CameraAppUI.SWIPE_LEFT || swipeState == CameraAppUI.SWIPE_RIGHT) {
+                hideManualFocusBar();
+            }
+            View parent = (View) mManualFocusBar.getParent();
+            if (event.getActionMasked() == MotionEvent.ACTION_UP
+                    && parent != null && parent.getVisibility() == View.VISIBLE) {
+                mHandler.sendEmptyMessageDelayed(HIDE_MANUAL_FOCUS_BAR, 3000);
+            }
+            mLastY = event.getY();
+            return true;
+        }
+    };
 
     private final GestureDetector.OnGestureListener mPreviewGestureListener
             = new GestureDetector.SimpleOnGestureListener() {
+        private MotionEvent mDownEvent;
         @Override
         public boolean onSingleTapUp(MotionEvent ev) {
             mController.onSingleTapUp(null, (int) ev.getX(), (int) ev.getY());
             return true;
         }
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            if (!mController.isManualFocusEnabled()) return false;
+            if (mDownEvent.getY() < 100) return false;
+            int swipeState = mActivity.getCameraAppUI().getSwipeState();
+            if (swipeState == CameraAppUI.SWIPE_DOWN || swipeState == CameraAppUI.SWIPE_UP) {
+                mHandler.removeMessages(HIDE_MANUAL_FOCUS_BAR);
+                View parent = (View) mManualFocusBar.getParent();
+                if (parent.getVisibility() != View.VISIBLE) {
+                    mController.onManualFocusStart(parent);
+                }
+            } else if (swipeState == CameraAppUI.SWIPE_LEFT || swipeState == CameraAppUI.SWIPE_RIGHT) {
+                hideManualFocusBar();
+            }
+            return true;
+        };
+        @Override
+        public boolean onDown(MotionEvent e) {
+            mDownEvent = e;
+            return true;
+        };
     };
     private final DialogInterface.OnDismissListener mOnDismissListener
             = new DialogInterface.OnDismissListener() {
@@ -86,6 +177,12 @@ public class PhotoUI implements PreviewStatusListener,
         }
     };
     private final CountDownView mCountdownView;
+    private final BurstCountDownView mBurstCountDownView;
+
+    private VerticalSeekBar mManualFocusBar;
+    private LinearLayout mModeOptionsToggle;
+    private View mSceneModeOptions;
+    private View mColorModeOptions;
 
     @Override
     public GestureDetector.OnGestureListener getGestureListener() {
@@ -94,7 +191,7 @@ public class PhotoUI implements PreviewStatusListener,
 
     @Override
     public View.OnTouchListener getTouchListener() {
-        return null;
+        return mPreviewOnTouchListener;
     }
 
     @Override
@@ -127,6 +224,22 @@ public class PhotoUI implements PreviewStatusListener,
         mCountdownView.startCountDown(sec);
     }
 
+    public void setBurstCountdown(int sec) {
+        mBurstCountDownView.setCountDown(sec);
+    }
+
+    public void setBurstSavingProgress(float progress) {
+        mBurstCountDownView.setBurstSavingProgress(progress);
+    }
+
+    public void setBurstSavingProgressVisible(boolean visible) {
+        mBurstCountDownView.setBurstSavingProgressVisible(visible);
+    }
+
+    public void setBurstSavingMessage(int message, boolean delayhide) {
+        mBurstCountDownView.setBurstSavingMessage(message, delayhide);
+    }
+
     /**
      * Sets a listener that gets notified when the countdown is finished.
      */
@@ -154,6 +267,7 @@ public class PhotoUI implements PreviewStatusListener,
             mFaceView.onPreviewAreaChanged(previewArea);
         }
         mCountdownView.onPreviewAreaChanged(previewArea);
+        mBurstCountDownView.onPreviewAreaChanged(previewArea);
     }
 
     private class DecodeTask extends AsyncTask<Void, Void, Bitmap> {
@@ -204,6 +318,7 @@ public class PhotoUI implements PreviewStatusListener,
         mFocusRing = (FocusRing) mRootView.findViewById(R.id.focus_ring);
         mPreviewOverlay = (PreviewOverlay) mRootView.findViewById(R.id.preview_overlay);
         mCountdownView = (CountDownView) mRootView.findViewById(R.id.count_down_view);
+        mBurstCountDownView = (BurstCountDownView) mRootView.findViewById(R.id.burst_count_down_view);
         // Show faces if we are in debug mode.
         if (DebugPropertyHelper.showCaptureDebugUI()) {
             mFaceView = (FaceView) mRootView.findViewById(R.id.face_view);
@@ -214,6 +329,104 @@ public class PhotoUI implements PreviewStatusListener,
         if (mController.isImageCaptureIntent()) {
             initIntentReviewImageView();
         }
+
+        mManualFocusBar = (VerticalSeekBar) mRootView.findViewById(R.id.manual_focus);
+        mManualFocusBar.setOnSeekBarChangeListener(mManualFocusChangeListener);
+        mManualFocusBar.setOnTouchListener(mManualFocusTouchListener);
+        mManualFocusBar.setOnViewHideListener(mOnViewHideListener);
+        mModeOptionsToggle = (LinearLayout) mRootView.findViewById(R.id.mode_options_toggle);
+        mSceneModeOptions = mRootView.findViewById(R.id.scene_options);
+        mColorModeOptions = mRootView.findViewById(R.id.color_options);
+        mPreviewOverlay.setOverlayView(mManualFocusBar);
+    }
+
+    public void setZoomEnabled(boolean enable) {
+        mPreviewOverlay.setZoomEnabled(enable);
+    }
+
+    private boolean isOtherViewOverlay() {
+        if (mSceneModeOptions != null) {
+            if (mSceneModeOptions.getVisibility() == View.VISIBLE)
+                return true;
+        }
+        if (mColorModeOptions != null) {
+            if (mColorModeOptions.getVisibility() == View.VISIBLE)
+                return true;
+        }
+        return false;
+    }
+
+    private VerticalSeekBar.onViewHideListener mOnViewHideListener = new VerticalSeekBar.onViewHideListener() {
+        
+        @Override
+        public void onViewHide() {
+            // TODO Auto-generated method stub
+            hideManualFocusBar();
+        }
+    };
+
+    private View.OnTouchListener mManualFocusTouchListener = new View.OnTouchListener() {
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            // TODO Auto-generated method stub
+            switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                Log.i(TAG, "onStartTrackingTouch");
+                mHandler.removeMessages(HIDE_MANUAL_FOCUS_BAR);
+                break;
+
+            case MotionEvent.ACTION_UP:
+                Log.i(TAG, "onStopTrackingTouch");
+                mHandler.sendEmptyMessageDelayed(HIDE_MANUAL_FOCUS_BAR, 3000);
+                break;
+
+            default:
+                break;
+            }
+            return false;
+        }
+    };
+
+    private OnSeekBarChangeListener mManualFocusChangeListener = new OnSeekBarChangeListener() {
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+            // TODO Auto-generated method stub
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+            // TODO Auto-generated method stub
+        }
+
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int progress,
+                boolean fromUser) {
+            // TODO Auto-generated method stub
+            mController.onManualFocusChanged(progress, mManualFocusBar.getMax());
+        }
+    };
+
+    public void hideManualFocusBar() {
+        mHandler.removeMessages(HIDE_MANUAL_FOCUS_BAR);
+        View parent = (View) mManualFocusBar.getParent();
+        if (!isOtherViewOverlay())
+            mModeOptionsToggle.setVisibility(View.VISIBLE);
+        if (parent.getVisibility() == View.VISIBLE) {
+            parent.setVisibility(View.GONE);
+            mController.onManualFocusEnd();
+        }
+    }
+
+    public void initManualFocusBarProgress(View parent, int progress, int max) {
+        if (max != 0) {
+            mManualFocusBar.setProgress((int) ((float) progress / (float) max
+                    * (float) mManualFocusBar.getMax()));
+        }
+        if (mModeOptionsToggle.getVisibility() == View.VISIBLE)
+            mModeOptionsToggle.setVisibility(View.INVISIBLE);
+        parent.setVisibility(View.VISIBLE);
     }
 
     private void initIntentReviewImageView() {
@@ -222,12 +435,15 @@ public class PhotoUI implements PreviewStatusListener,
                 new PreviewStatusListener.PreviewAreaChangedListener() {
                     @Override
                     public void onPreviewAreaChanged(RectF previewArea) {
+                        mPreviewArea = previewArea;
                         FrameLayout.LayoutParams params =
                             (FrameLayout.LayoutParams) mIntentReviewImageView.getLayoutParams();
                         params.width = (int) previewArea.width();
                         params.height = (int) previewArea.height();
                         params.setMargins((int) previewArea.left, (int) previewArea.top, 0, 0);
                         mIntentReviewImageView.setLayoutParams(params);
+                        if (!CameraUtil.AUTO_ROTATE_SENSOR)
+                            updateIntentReviewByOrientation();
                     }
                 });
     }
@@ -250,6 +466,11 @@ public class PhotoUI implements PreviewStatusListener,
         }
     }
 
+    public boolean isReviewVisible() {
+        if (mIntentReviewImageView != null)
+            return mIntentReviewImageView.getVisibility() == View.VISIBLE;
+        return false;
+    }
 
     public FocusRing getFocusRing() {
         return mFocusRing;
@@ -341,6 +562,8 @@ public class PhotoUI implements PreviewStatusListener,
         // image capture
         if (mController.isImageCaptureIntent()) {
             mController.onCaptureCancelled();
+            return true;
+        } else if (mController.cancelSmileShutterIfOn()) {
             return true;
         } else if (!mController.isCameraIdle()) {
             // ignore backs while we're taking a picture
@@ -436,4 +659,32 @@ public class PhotoUI implements PreviewStatusListener,
         }
     }
 
+    public void updateUIByOrientation() {
+        mCountdownView.setRotation(CameraUtil.mUIRotated);
+        mBurstCountDownView.setRotation(CameraUtil.mUIRotated);
+        mActivity.getCameraAppUI().updateUIByOrientation();
+        updateIntentReviewByOrientation();
+    }
+
+    private void updateIntentReviewByOrientation() {
+        if (mPreviewArea == null || mIntentReviewImageView == null) return;
+        FrameLayout.LayoutParams params =
+                (FrameLayout.LayoutParams) mIntentReviewImageView.getLayoutParams();
+        if (CameraUtil.mIsPortrait) {
+            params.width = (int) mPreviewArea.width();
+            params.height = (int) mPreviewArea.height();
+            params.setMargins((int) mPreviewArea.left, (int) mPreviewArea.top, 0, 0);
+            mIntentReviewImageView.setLayoutParams(params);
+            mIntentReviewImageView.setTranslationX(0);
+            mIntentReviewImageView.setTranslationY(0);
+        } else {
+            params.width = (int) mPreviewArea.height();
+            params.height = (int) mPreviewArea.width();
+            params.setMargins((int) mPreviewArea.left, (int) mPreviewArea.top, 0, 0);
+            mIntentReviewImageView.setLayoutParams(params);
+            mIntentReviewImageView.setTranslationX((mPreviewArea.width() - mPreviewArea.height()) / 2.0f);
+            mIntentReviewImageView.setTranslationY((mPreviewArea.height() - mPreviewArea.width()) / 2.0f);
+        }
+        mIntentReviewImageView.setRotation(CameraUtil.mUIRotated);
+    }
 }

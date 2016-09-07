@@ -20,6 +20,10 @@
             android:title="@string/details"
             android:visible="true"
             android:showAsAction="never" />
+    <item android:id="@+id/action_show_on_map"
+            android:title="@string/show_on_map"
+            android:showAsAction="never"
+            android:visible="false" />
     <item android:id="@+id/action_help_and_feedback"
             android:title="@string/setting_google_help_and_feedback"
             android:visible="true"

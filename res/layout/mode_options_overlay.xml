@@ -23,4 +23,17 @@
 
     <include layout="@layout/mode_options" />
     <include layout="@layout/indicators" />
+    <include layout="@layout/mode_options_screen_effects"/>
+    <include layout="@layout/manual_focus_seek"/>
+
+    <TextView android:id="@+id/smile_shutter_tip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:layout_gravity="center_horizontal"
+        android:textAppearance="@android:style/TextAppearance.Holo.Medium"
+        android:textColor="@android:color/white"
+        android:text="@string/smile_shutter_tip"
+        android:visibility="gone"/>
+
 </com.android.camera.widget.ModeOptionsOverlay>

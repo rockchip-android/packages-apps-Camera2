@@ -164,6 +164,11 @@
     <string-array name="pref_camera_scenemode_entryvalues" translatable="false">
         <item>auto</item>
         <item>hdr</item>
+        <item>portrait</item>
+        <item>landscape</item>
+        <item>night</item>
+        <item>sports</item>
+        <item>barcode</item>
     </string-array>
 
     <array name="camera_id_entries" translatable="false">
@@ -533,4 +538,115 @@
         <item>@drawable/shutter_button_background_still</item>
         <item>@drawable/shutter_button_background_still</item>
     </array>
+
+    <string-array name="scene_mode_text">
+        <item>@string/scene_mode_auto</item>
+        <item>@string/scene_mode_portrait</item>
+        <item>@string/scene_mode_landscape</item>
+        <item>@string/scene_mode_night</item>
+        <item>@string/scene_mode_sports</item>
+        <item>@string/scene_mode_barcode</item>
+    </string-array>
+
+    <string-array name="pref_camera_whitebalance_entry" translatable="false">
+        <item>auto</item>
+        <item>cloudy-daylight</item>
+        <item>daylight</item>
+        <item>fluorescent</item>
+        <item>incandescent</item>
+    </string-array>
+
+    <string-array name="pref_camera_color_effect_entry" translatable="false">
+        <item>none</item>
+        <item>mono</item>
+        <item>negative</item>
+        <item>sepia</item>
+    </string-array>
+
+    <array name="zsl_icons" translatable="false">
+      <item>@drawable/ic_zsl_off</item>
+      <item>@drawable/ic_zsl_on</item>
+    </array>
+
+    <array name="zsl_indicator_icons" translatable="false">
+      <item>@drawable/ic_zsl_off_indicator</item>
+      <item>@drawable/ic_zsl_on_indicator</item>
+    </array>
+
+    <array name="zsl_descriptions" translatable="false">
+      <item>@string/zsl_off_desc</item>
+      <item>@string/zsl_on_desc</item>
+    </array>
+
+    <array name="smile_shutter_icons" translatable="false">
+      <item>@drawable/ic_smile_shutter_off</item>
+      <item>@drawable/ic_smile_shutter_on</item>
+    </array>
+
+    <array name="smile_shutter_indicator_icons" translatable="false">
+      <item>@drawable/ic_smile_shutter_off_indicator</item>
+      <item>@drawable/ic_smile_shutter_on_indicator</item>
+    </array>
+
+    <array name="smile_shutter_descriptions" translatable="false">
+      <item>@string/smile_shutter_off_desc</item>
+      <item>@string/smile_shutter_on_desc</item>
+    </array>
+
+    <string-array name="pref_camera_saturation_entry" translatable="false">
+        <item>normal</item>
+        <item>low</item>
+        <item>high</item>
+    </string-array>
+
+    <string-array name="pref_camera_contrast_entry" translatable="false">
+        <item>normal</item>
+        <item>soft</item>
+        <item>hard</item>
+    </string-array>
+
+    <string-array name="pref_camera_sharpness_entry" translatable="false">
+        <item>normal</item>
+        <item>low</item>
+        <item>high</item>
+    </string-array>
+
+    <string-array name="pref_camera_brightness_entry" translatable="false">
+        <item>normal</item>
+        <item>low</item>
+        <item>high</item>
+    </string-array>
+
+    <string-array name="pref_camera_hue_entry" translatable="false">
+        <item>normal</item>
+        <item>low</item>
+        <item>high</item>
+    </string-array>
+
+    <!-- Camera Preferences AntiBanding entries -->
+    <string-array name="pref_antibanding_entryvalues" translatable="false">
+        <item>@string/pref_antibanding_off</item>
+        <item>@string/pref_antibanding_50hz</item>
+        <item>@string/pref_antibanding_60hz</item>
+        <item>@string/pref_antibanding_auto</item>
+    </string-array>
+
+    <!-- Camera Preferences AntiBanding names -->
+    <string-array name="pref_antibanding_names">
+        <item>@string/setting_antibanding_off_summary</item>
+        <item>@string/setting_antibanding_50hz_summary</item>
+        <item>@string/setting_antibanding_60hz_summary</item>
+        <item>@string/setting_antibanding_auto_summary</item>
+    </string-array>
+
+    <!-- Camera Preferences storage path names -->
+    <string-array name="pref_media_save_path_entries">
+        <item>@string/media_save_path_flash_label</item>
+        <item>@string/media_save_path_external_sd_label</item>
+    </string-array>
+
+    <string-array name="pref_media_save_path_entryvalues" translatable="false">
+        <item>@string/pref_media_save_path_flash</item>
+        <item>@string/pref_media_save_path_external_sd</item>
+    </string-array>
 </resources>

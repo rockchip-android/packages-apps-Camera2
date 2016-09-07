@@ -65,6 +65,7 @@ public class ResolutionSetting {
      */
     public void setPictureAspectRatio(CameraId cameraId, Rational aspectRatio)
             throws OneCameraAccessException {
+        Log.d(TAG, "camera " + cameraId + " setPictureAspectRatio");
         OneCameraCharacteristics cameraCharacteristics =
                 mOneCameraManager.getOneCameraCharacteristics(cameraId);
 
@@ -106,6 +107,7 @@ public class ResolutionSetting {
      */
     public Size getPictureSize(CameraId cameraId, Facing cameraFacing)
             throws OneCameraAccessException {
+        Log.d(TAG, "camera " + cameraId + " getPictureSize");
         final String pictureSizeSettingKey = cameraFacing == OneCamera.Facing.FRONT ?
                 Keys.KEY_PICTURE_SIZE_FRONT : Keys.KEY_PICTURE_SIZE_BACK;
 

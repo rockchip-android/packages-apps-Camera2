@@ -22,11 +22,16 @@ import android.view.animation.Interpolator;
 import android.graphics.PointF;
 import android.graphics.RectF;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 
 import com.android.camera.CaptureLayoutHelper;
+import com.android.camera.ShutterButton;
 import com.android.camera.debug.Log;
+import com.android.camera.ui.BottomBar.BottomBarButtonClickListener;
+import com.android.camera.util.CameraUtil;
 import com.android.camera.ui.motion.InterpolatorHelper;
 import com.android.camera.widget.ModeOptions;
 import com.android.camera.widget.ModeOptionsOverlay;
@@ -39,13 +44,21 @@ import com.android.camera2.R;
  * respectively. All the other children in this view group can be expected to
  * be laid out the same way as they are in a normal FrameLayout.
  */
-public class StickyBottomCaptureLayout extends FrameLayout {
+public class StickyBottomCaptureLayout extends FrameLayout
+    implements PreviewOverlay.OnPreviewTouchedListener,
+    ShutterButton.OnShutterButtonListener,
+    BottomBar.BottomBarButtonClickListener {
 
     private final static Log.Tag TAG = new Log.Tag("StickyBotCapLayout");
     private RoundedThumbnailView mRoundedThumbnailView;
     private ModeOptionsOverlay mModeOptionsOverlay;
     private View mBottomBar;
     private CaptureLayoutHelper mCaptureLayoutHelper = null;
+    
+    private AverageRadioOptions mSceneModeOptions;
+    private AverageRadioOptions mColorModeOptions;
+    
+    private int mSceneModesHeight;
 
     private ModeOptions.Listener mModeOptionsListener = new ModeOptions.Listener() {
         @Override
@@ -87,6 +100,76 @@ public class StickyBottomCaptureLayout extends FrameLayout {
         mModeOptionsOverlay = (ModeOptionsOverlay) findViewById(R.id.mode_options_overlay);
         mModeOptionsOverlay.setModeOptionsListener(mModeOptionsListener);
         mBottomBar = findViewById(R.id.bottom_bar);
+		mSceneModeOptions = (AverageRadioOptions) findViewById(R.id.scene_options);
+        mColorModeOptions = (AverageRadioOptions) findViewById(R.id.color_options);
+
+        mSceneModesHeight = getContext().getResources().
+                getDimensionPixelSize(R.dimen.scene_options_height);
+    }
+
+    public boolean onBackPressed() {
+        if (mSceneModeOptions.getVisibility() == View.VISIBLE) {
+            mSceneModeOptions.animateHidden(true);
+            return true;
+        } else if (mColorModeOptions.getVisibility() == View.VISIBLE) {
+            mColorModeOptions.animateHidden(true);
+            return true;
+        }
+        return ((ModeOptionsOverlay) mModeOptionsOverlay).onBackPressed();
+    }
+
+    private void layoutButtonContents(RectF modeOptionRect, RectF bottomBarRect) {
+        int displayrotation = CameraUtil.getDisplayRotation();
+        int orientation = getContext().getResources().getConfiguration().orientation;
+        final boolean isPortrait = Configuration.ORIENTATION_PORTRAIT == orientation;
+        //Log.i(TAG,"isPortrait = " + isPortrait + ",displayrotation = " + displayrotation);
+        int SceneModesSize = mSceneModesHeight;
+        int ColorModesSize = 0;
+
+        //Log.i(TAG,"scene size = " + SceneModesSize);
+        //Log.i(TAG,"color size = " + ColorModesSize);
+        //Log.i(TAG,"modeOptionRect = " + modeOptionRect.toString());
+        //Log.i(TAG,"bottomBarRect = " + bottomBarRect.toString());
+
+        if (isPortrait) {
+            int left = (int) modeOptionRect.left;
+            int top = (int) (modeOptionRect.bottom - SceneModesSize);
+            int right = (int) modeOptionRect.right;
+            int bottom = (int) modeOptionRect.bottom;
+            mSceneModeOptions.layout(left, top, right, bottom);
+
+            ColorModesSize = (int) (modeOptionRect.width() / mColorModeOptions.getChildCount());
+            top = (int) (modeOptionRect.bottom - ColorModesSize);
+            mColorModeOptions.layout(left, top, right, bottom);
+        } else {
+            int right = (int) modeOptionRect.right;
+            int top = (int) modeOptionRect.top;
+            int left = right - SceneModesSize;
+            int bottom = (int) modeOptionRect.bottom;
+            mSceneModeOptions.layout(left, top, right, bottom);
+
+            ColorModesSize = (int) (modeOptionRect.height() / mColorModeOptions.getChildCount());
+            left = right - ColorModesSize;
+            mColorModeOptions.layout(left, top, right, bottom);
+        } /*else if (displayrotation == 180) {
+            int left = (int) modeOptionRect.left;
+            int top = (int) modeOptionRect.top;
+            int right = (int) modeOptionRect.right;
+            int bottom = top + SceneModesSize;
+            mSceneModeOptions.layout(left, top, right, bottom);
+
+            bottom = top + ColorModesSize;
+            mColorModeOptions.layout(left, top, right, bottom);
+        } else if (displayrotation == 270) {
+            int left = (int) modeOptionRect.left;
+            int top = (int) modeOptionRect.top;
+            int right = left + SceneModesSize;
+            int bottom = (int) modeOptionRect.bottom;
+            mSceneModeOptions.layout(left, top, right, bottom);
+
+            right = left + ColorModesSize;
+            mColorModeOptions.layout(left, top, right, bottom);
+        }*/
     }
 
     /**
@@ -122,6 +205,88 @@ public class StickyBottomCaptureLayout extends FrameLayout {
         RectF bottomBarRect = mCaptureLayoutHelper.getBottomBarRect();
         mBottomBar.layout((int) bottomBarRect.left, (int) bottomBarRect.top,
                 (int) bottomBarRect.right, (int) bottomBarRect.bottom);
+
+        layoutButtonContents(uncoveredPreviewRect, bottomBarRect);
+    }
+
+    @Override
+    protected void onConfigurationChanged(Configuration newConfig) {
+        // TODO Auto-generated method stub
+        Log.i(TAG, "onConfigurationChanged");
+        super.onConfigurationChanged(newConfig);
+        /*final boolean isPortrait = (Configuration.ORIENTATION_PORTRAIT == newConfig.orientation);
+        if (isPortrait) {
+            mSceneModeOptions.setOrientation(LinearLayout.HORIZONTAL);
+            mColorModeOptions.setOrientation(LinearLayout.HORIZONTAL);
+        } else {
+            mSceneModeOptions.setOrientation(LinearLayout.VERTICAL);
+            mColorModeOptions.setOrientation(LinearLayout.VERTICAL);
+        }
+        requestLayout();*/
+    }
+
+    @Override
+    public void ColorButtonOnClick() {
+        // TODO Auto-generated method stub
+        Log.i(TAG,"ColorButtonOnClick");
+        ((ModeOptionsOverlay) mModeOptionsOverlay).closeModeOptions(false);
+        if (mColorModeOptions.getVisibility() == View.VISIBLE) {
+            mColorModeOptions.animateHidden(true);
+        } else {
+            mColorModeOptions.animateVisible();
+            mSceneModeOptions.animateHidden(false);
+        }
+    }
+
+    @Override
+    public void SceneButtonOnClick() {
+        // TODO Auto-generated method stub
+        Log.i(TAG,"SceneButtonOnClick");
+        ((ModeOptionsOverlay) mModeOptionsOverlay).closeModeOptions(false);
+        if (mSceneModeOptions.getVisibility() == View.VISIBLE) {
+            mSceneModeOptions.animateHidden(true);
+        } else {
+            mSceneModeOptions.animateVisible();
+            mColorModeOptions.animateHidden(false);
+        }
+    }
+
+    @Override
+    public void onShutterButtonFocus(boolean pressed) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void onShutterCoordinate(TouchCoordinate coord) {
+        // TODO Auto-generated method stub
+    }
+
+    @Override
+    public void onShutterButtonClick() {
+        // TODO Auto-generated method stub
+        mColorModeOptions.animateHidden(true);
+        mSceneModeOptions.animateHidden(true);
+    }
+
+    @Override
+    public void onShutterButtonLongPressed() {
+        // TODO Auto-generated method stub
+        mColorModeOptions.animateHidden(true);
+        mSceneModeOptions.animateHidden(true);
+    }
+
+    @Override
+    public void onShutterButtonLongClickRelease() {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void onPreviewTouched(MotionEvent ev) {
+        // TODO Auto-generated method stub
+        mColorModeOptions.animateHidden(true);
+        mSceneModeOptions.animateHidden(true);
     }
 
     /**

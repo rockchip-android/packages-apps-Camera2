@@ -82,6 +82,14 @@ public interface ModuleController extends ShutterButton.OnShutterButtonListener 
     public void onLayoutOrientationChanged(boolean isLandscape);
 
     /**
+     * Called when the UI orientation is changed.
+     *
+     * @param orientation The new orientation, valid values are 0, 90, 180 and
+     *                    270.
+     */
+    public void onOrientationChanged(int orientation);
+
+    /**
      * Called when back key is pressed.
      *
      * @return Whether the back key event is processed.
@@ -125,4 +133,6 @@ public interface ModuleController extends ShutterButton.OnShutterButtonListener 
     // TODO: once all modules use the generic module UI, move this
     // logic into the app.
     public boolean isUsingBottomBar();
+
+    public void onNonDecorWindowSizeChanged();
 }

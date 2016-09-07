@@ -18,7 +18,10 @@ package com.android.camera.settings;
 
 import android.content.Context;
 
+import com.android.camera.CameraActivity;
+import com.android.camera.PhotoModule;
 import com.android.camera.app.LocationManager;
+import com.android.camera.debug.DebugPropertyHelper;
 import com.android.camera.util.ApiHelper;
 import com.android.camera2.R;
 
@@ -80,6 +83,37 @@ public class Keys {
     public static final String KEY_HDR_PLUS_FLASH_MODE = "pref_hdr_plus_flash_mode";
     public static final String KEY_SHOULD_SHOW_SETTINGS_BUTTON_CLING =
             "pref_should_show_settings_button_cling";
+
+    public static final String KEY_WHITEBALANCE = "pref_camera_whitebalance_key";
+    public static final String KEY_WHITEBALANCE_ENABLED =
+            "pref_camera_whitebalance_enable_key";
+
+    public static final String KEY_COLOR_EFFECT = "pref_camera_color_effect_key";
+
+    public static final String KEY_CAMERA_SOUND = "pref_camera_sound_enable_key";
+
+    public static final String KEY_BURST_CAPTURE_ON = "pref_burst_capture_on_key";
+
+    public static final String KEY_FACE_DETECTION_ENABLED =
+            "pref_face_detection_enabled_key";
+    public static final String KEY_SMILE_SHUTTER_ON = "pref_smile_shutter_on_key";
+
+    public static final String KEY_PREVIEW_FULL_SIZE_ENABLE = "pref_preview_fullsize_enable_key";
+
+    public static final String KEY_PREVIEW_FULL_SIZE_ON = "pref_preview_fullsize_on_key";
+
+    public static final String KEY_SATURATION = "pref_camera_saturation_key";
+    public static final String KEY_CONTRAST = "pref_camera_contrast_key";
+    public static final String KEY_SHARPNESS = "pref_camera_sharpness_key";
+    public static final String KEY_BRIGHTNESS = "pref_camera_brightness_key";
+    public static final String KEY_HUE = "pref_camera_hue_key";
+
+    public static final String KEY_ANTIBANDING = "pref_camera_antibanding_key";
+
+    public static final String KEY_SETTINGS_FIRST_RUN = "pref_setting_First_Run";
+
+    public static final String KEY_MEDIA_SAVE_PATH = "pref_media_save_path_key";
+
     public static final String KEY_HAS_SEEN_PERMISSIONS_DIALOGS = "pref_has_seen_permissions_dialogs";
 
     /**
@@ -141,6 +175,23 @@ public class Keys {
                                          Keys.KEY_VIDEO_QUALITY_FRONT);
         }
 
+        settingsManager.setDefaults(
+            KEY_PICTURE_SIZE_BACK,
+            context.getString(R.string.pref_camera_picturesize_default),
+            context.getResources().getStringArray(R.array.pref_camera_picturesize_entryvalues));
+        if (!settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, Keys.KEY_PICTURE_SIZE_BACK)) {
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                                         Keys.KEY_PICTURE_SIZE_BACK);
+        }
+
+        settingsManager.setDefaults(KEY_PICTURE_SIZE_FRONT,
+            context.getString(R.string.pref_camera_picturesize_default),
+            context.getResources().getStringArray(R.array.pref_camera_picturesize_entryvalues));
+        if (!settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, Keys.KEY_PICTURE_SIZE_FRONT)) {
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                                         Keys.KEY_PICTURE_SIZE_FRONT);
+        }
+
         settingsManager.setDefaults(KEY_JPEG_QUALITY,
             context.getString(R.string.pref_camera_jpeg_quality_normal),
             context.getResources().getStringArray(
@@ -180,6 +231,209 @@ public class Keys {
 
         settingsManager.setDefaults(KEY_SHOULD_SHOW_SETTINGS_BUTTON_CLING, true);
 
+        settingsManager.setDefaults(KEY_CAMERA_SOUND, true);
+
+        settingsManager.setDefaults(KEY_WHITEBALANCE, 
+            context.getString(R.string.pref_camera_whitebalance_default), 
+            context.getResources().getStringArray(R.array.pref_camera_whitebalance_entry));
+
+        settingsManager.setDefaults(KEY_COLOR_EFFECT, 
+            context.getString(R.string.pref_camera_color_effect_default), 
+            context.getResources().getStringArray(R.array.pref_camera_color_effect_entry));
+
+        //settingsManager.setDefaults(KEY_BURST_CAPTURE_ON, false);
+
+        settingsManager.setDefaults(KEY_FACE_DETECTION_ENABLED, true);
+        settingsManager.setDefaults(KEY_SMILE_SHUTTER_ON, false);
+
+        settingsManager.setDefaults(KEY_PREVIEW_FULL_SIZE_ENABLE, DebugPropertyHelper.isPreviewFullSizeOn());
+
+        settingsManager.setDefaults(KEY_SATURATION, 
+            context.getString(R.string.pref_camera_saturation_default), 
+            context.getResources().getStringArray(R.array.pref_camera_saturation_entry));
+
+        settingsManager.setDefaults(KEY_CONTRAST, 
+            context.getString(R.string.pref_camera_contrast_default), 
+            context.getResources().getStringArray(R.array.pref_camera_contrast_entry));
+
+        settingsManager.setDefaults(KEY_SHARPNESS, 
+            context.getString(R.string.pref_camera_sharpness_default), 
+            context.getResources().getStringArray(R.array.pref_camera_sharpness_entry));
+
+        settingsManager.setDefaults(KEY_BRIGHTNESS, 
+            context.getString(R.string.pref_camera_brightness_default),
+            context.getResources().getStringArray(R.array.pref_camera_brightness_entry));
+
+        settingsManager.setDefaults(KEY_HUE, 
+            context.getString(R.string.pref_camera_hue_default),
+            context.getResources().getStringArray(R.array.pref_camera_hue_entry));
+
+        settingsManager.setDefaults(KEY_ANTIBANDING,
+            DebugPropertyHelper.getDefaultBanding(),
+            context.getResources().getStringArray(R.array.pref_antibanding_entryvalues));
+        if (!settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, Keys.KEY_ANTIBANDING)) {
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                                         Keys.KEY_ANTIBANDING);
+        }
+
+        settingsManager.setDefaults(
+            KEY_MEDIA_SAVE_PATH,
+            context.getString(R.string.pref_media_save_path_flash),
+            context.getResources().getStringArray(R.array.pref_media_save_path_entryvalues));
+        if (!settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, Keys.KEY_MEDIA_SAVE_PATH)) {
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                                         Keys.KEY_MEDIA_SAVE_PATH);
+        }
+    }
+
+    /**
+     * Set the defined keys to defaults.
+     * It's not necessary to set all defaults.
+     */
+    public static void setToDefaults(SettingsManager settingsManager, Context context) {
+        if (settingsManager == null || context == null) return;
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_COUNTDOWN_DURATION))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL, KEY_COUNTDOWN_DURATION);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_CAMERA_ID))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL, KEY_CAMERA_ID);
+
+        String[] cameraId = context.getResources().getStringArray(R.array.camera_id_entryvalues);
+        if (cameraId != null) {
+            for (int i = 0; i < cameraId.length; i++) {
+                if (Integer.valueOf(cameraId[i]) < 0) {
+                    // if an unopen camera i.e. negative ID is returned, which we've observed in
+                    // some automated scenarios, just return it as a valid separate scope
+                    // this could cause user issues, so log a stack trace noting the call path
+                    // which resulted in this scenario.
+                    continue;
+                }
+                String cameraScope = SettingsManager.CAMERA_SCOPE_PREFIX + cameraId[i];
+
+                if (settingsManager.isSet(cameraScope, KEY_SCENE_MODE))
+                    settingsManager.setToDefault(cameraScope, KEY_SCENE_MODE);
+
+                if (settingsManager.isSet(cameraScope, KEY_FLASH_MODE))
+                    settingsManager.setToDefault(cameraScope, KEY_FLASH_MODE);
+
+                if (settingsManager.isSet(cameraScope, KEY_FOCUS_MODE))
+                    settingsManager.setToDefault(cameraScope, KEY_FOCUS_MODE);
+
+                if (settingsManager.isSet(cameraScope, KEY_VIDEOCAMERA_FLASH_MODE))
+                    settingsManager.setToDefault(cameraScope, KEY_VIDEOCAMERA_FLASH_MODE);
+
+                if (settingsManager.isSet(cameraScope, KEY_WHITEBALANCE))
+                    settingsManager.setToDefault(cameraScope, KEY_WHITEBALANCE);
+
+                if (settingsManager.isSet(cameraScope, KEY_COLOR_EFFECT))
+                    settingsManager.setToDefault(cameraScope, KEY_COLOR_EFFECT);
+
+                if (settingsManager.isSet(cameraScope, KEY_SATURATION))
+                    settingsManager.setToDefault(cameraScope, KEY_SATURATION);
+
+                if (settingsManager.isSet(cameraScope, KEY_CONTRAST))
+                    settingsManager.setToDefault(cameraScope, KEY_CONTRAST);
+
+                if (settingsManager.isSet(cameraScope, KEY_SHARPNESS))
+                    settingsManager.setToDefault(cameraScope, KEY_SHARPNESS);
+
+                if (settingsManager.isSet(cameraScope, KEY_BRIGHTNESS))
+                    settingsManager.setToDefault(cameraScope, KEY_BRIGHTNESS);
+
+                if (settingsManager.isSet(cameraScope, KEY_HUE))
+                    settingsManager.setToDefault(cameraScope, KEY_HUE);
+            }
+        }
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_CAMERA_HDR))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL, KEY_CAMERA_HDR);
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_CAMERA_HDR_PLUS))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL, KEY_CAMERA_HDR_PLUS);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_CAMERA_FIRST_USE_HINT_SHOWN))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL, KEY_CAMERA_FIRST_USE_HINT_SHOWN);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_VIDEO_QUALITY_BACK))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                KEY_VIDEO_QUALITY_BACK);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_VIDEO_QUALITY_FRONT))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                KEY_VIDEO_QUALITY_FRONT);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_PICTURE_SIZE_BACK))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                    KEY_PICTURE_SIZE_BACK);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_PICTURE_SIZE_FRONT))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                    KEY_PICTURE_SIZE_FRONT);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_STARTUP_MODULE_INDEX))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                KEY_STARTUP_MODULE_INDEX);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_CAMERA_MODULE_LAST_USED))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                KEY_CAMERA_MODULE_LAST_USED);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_CAMERA_PANO_ORIENTATION))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                KEY_CAMERA_PANO_ORIENTATION);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_CAMERA_GRID_LINES))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                KEY_CAMERA_GRID_LINES);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_SHOULD_SHOW_REFOCUS_VIEWER_CLING))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                KEY_SHOULD_SHOW_REFOCUS_VIEWER_CLING);
+
+        String photoModuleScope = SettingsManager.MODULE_SCOPE_PREFIX + SettingsScopeNamespaces.PHOTO;
+        if (settingsManager.isSet(photoModuleScope, KEY_HDR_PLUS_FLASH_MODE))
+            settingsManager.setToDefault(photoModuleScope,
+                KEY_HDR_PLUS_FLASH_MODE);
+        String videoModuleScope = SettingsManager.MODULE_SCOPE_PREFIX + SettingsScopeNamespaces.VIDEO;
+        if (settingsManager.isSet(videoModuleScope, KEY_HDR_PLUS_FLASH_MODE))
+            settingsManager.setToDefault(videoModuleScope,
+                KEY_HDR_PLUS_FLASH_MODE);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_SHOULD_SHOW_SETTINGS_BUTTON_CLING))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                KEY_SHOULD_SHOW_SETTINGS_BUTTON_CLING);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_CAMERA_SOUND))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                KEY_CAMERA_SOUND);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_BURST_CAPTURE_ON))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL, KEY_BURST_CAPTURE_ON);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_FACE_DETECTION_ENABLED))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL, KEY_FACE_DETECTION_ENABLED);
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_SMILE_SHUTTER_ON))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL, KEY_SMILE_SHUTTER_ON);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_RECORD_LOCATION))
+            settingsManager.set(SettingsManager.SCOPE_GLOBAL, KEY_RECORD_LOCATION, false);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_PREVIEW_FULL_SIZE_ENABLE))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL, KEY_PREVIEW_FULL_SIZE_ENABLE);
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_PREVIEW_FULL_SIZE_ON))
+            settingsManager.set(SettingsManager.SCOPE_GLOBAL, KEY_PREVIEW_FULL_SIZE_ON, false);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_WHITEBALANCE_ENABLED))
+            settingsManager.set(SettingsManager.SCOPE_GLOBAL, KEY_WHITEBALANCE_ENABLED, false);
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_EXPOSURE_COMPENSATION_ENABLED))
+            settingsManager.set(SettingsManager.SCOPE_GLOBAL, KEY_EXPOSURE_COMPENSATION_ENABLED, false);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_ANTIBANDING))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                    KEY_ANTIBANDING);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_MEDIA_SAVE_PATH))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                    KEY_MEDIA_SAVE_PATH);
     }
 
     /** Helper functions for some defined keys. */

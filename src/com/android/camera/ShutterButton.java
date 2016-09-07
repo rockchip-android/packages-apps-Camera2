@@ -60,6 +60,7 @@ public class ShutterButton extends ImageView {
          * Called when shutter button is held down for a long press.
          */
         void onShutterButtonLongPressed();
+        void onShutterButtonLongClickRelease();
     }
 
     /**
@@ -69,6 +70,7 @@ public class ShutterButton extends ImageView {
         @Override
         public void onLongPress(MotionEvent event) {
             for (OnShutterButtonListener listener : mListeners) {
+                mOldLongPressed = true;
                 listener.onShutterButtonLongPressed();
             }
         }
@@ -77,6 +79,8 @@ public class ShutterButton extends ImageView {
     private List<OnShutterButtonListener> mListeners
         = new ArrayList<OnShutterButtonListener>();
     private boolean mOldPressed;
+
+    private boolean mOldLongPressed;
 
     public ShutterButton(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -118,6 +122,14 @@ public class ShutterButton extends ImageView {
             if (m.getActionMasked() == MotionEvent.ACTION_UP) {
                 mTouchCoordinate = new TouchCoordinate(m.getX(), m.getY(), this.getMeasuredWidth(),
                         this.getMeasuredHeight());
+                if (mOldLongPressed) {
+                    mOldLongPressed = false;
+                    for (OnShutterButtonListener listener : mListeners) {
+                        listener.onShutterCoordinate(mTouchCoordinate);
+                        mTouchCoordinate = null;
+                        listener.onShutterButtonLongClickRelease();
+                    }
+                }
             }
             return super.dispatchTouchEvent(m);
         } else {
@@ -191,5 +203,13 @@ public class ShutterButton extends ImageView {
             }
         }
         return result;
+    }
+
+    @Override
+    public void setLongClickable(boolean longClickable) {
+        // TODO Auto-generated method stub
+        if (mGestureDetector != null)
+            mGestureDetector.setIsLongpressEnabled(longClickable);
+        super.setLongClickable(longClickable);
     }
 }

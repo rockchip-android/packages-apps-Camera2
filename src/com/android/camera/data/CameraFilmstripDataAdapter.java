@@ -151,7 +151,7 @@ public class CameraFilmstripDataAdapter implements LocalFilmstripDataAdapter {
     @Override
     public void setListener(Listener listener) {
         mListener = listener;
-        if (mFilmstripItems.size() != 0) {
+        if (mFilmstripItems.size() != 0 && mListener != null) {
             mListener.onFilmstripItemLoaded();
         }
     }
@@ -166,7 +166,8 @@ public class CameraFilmstripDataAdapter implements LocalFilmstripDataAdapter {
         // Delete previously removed data first.
         executeDeletion();
         mFilmstripItemToDelete = d;
-        mListener.onFilmstripItemRemoved(index, d);
+        if (mListener != null)
+            mListener.onFilmstripItemRemoved(index, d);
     }
 
     @Override

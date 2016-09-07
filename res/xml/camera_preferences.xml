@@ -54,11 +54,31 @@
     </PreferenceCategory>
   </PreferenceScreen>
 
+  <!-- Camera Sound -->
+  <com.android.camera.settings.ManagedSwitchPreference
+      android:defaultValue="true"
+      android:key="pref_camera_sound_enable_key"
+      android:title="@string/pref_camera_sound_title" />
+
   <!-- Location -->
   <com.android.camera.settings.ManagedSwitchPreference
       android:defaultValue="false"
       android:key="pref_camera_recordlocation_key"
       android:title="@string/pref_camera_save_location_title" />
+
+  <!-- Face Detection enable -->
+  <com.android.camera.settings.ManagedSwitchPreference
+      android:defaultValue="true"
+      android:key="pref_face_detection_enabled_key"
+      android:title="@string/pref_face_detection_enabled_title" />
+
+  <!-- media save path -->
+  <ListPreference
+      android:defaultValue="@string/pref_media_save_path_flash"
+      android:entries="@array/pref_media_save_path_entries"
+      android:entryValues="@array/pref_media_save_path_entryvalues"
+      android:key="pref_media_save_path_key"
+      android:title="@string/setting_media_save_path" />
 
   <!-- Advanced -->
   <PreferenceScreen
@@ -68,12 +88,31 @@
     <com.android.camera.settings.ManagedSwitchPreference
         android:defaultValue="false"
         android:key="pref_camera_exposure_compensation_key"
-        android:title="@string/pref_camera_exposure_compensation" />
+        android:title="@string/pref_camera_screen_effects" />
+    <com.android.camera.settings.ManagedSwitchPreference
+        android:defaultValue="false"
+        android:key="pref_camera_whitebalance_enable_key"
+        android:title="@string/pref_camera_whitebalance_title" />
+    <!-- Anti banding -->
+    <ListPreference
+        android:defaultValue="@string/pref_antibanding_auto"
+        android:entryValues="@array/pref_antibanding_entryvalues"
+        android:key="pref_camera_antibanding_key"
+        android:title="@string/setting_camera_antibanding" />
   </PreferenceScreen>
 
+  <com.android.camera.settings.MyDialogPreference
+      android:key="pref_restore_settings"
+      android:title="@string/pref_restore_default_settings_title"
+      android:dialogMessage="@string/pref_restore_default_settings_msg"
+      android:dialogTitle="@string/pref_restore_default_settings_title"
+      android:positiveButtonText="@android:string/ok"
+      android:negativeButtonText="@android:string/cancel"
+      />
+
   <!-- Google Help and feedback launcher -->
-  <Preference
+  <!-- <Preference
       android:key="pref_launch_help"
-      android:title="@string/setting_google_help_and_feedback" />
+      android:title="@string/setting_google_help_and_feedback" /> -->
 
 </PreferenceScreen>

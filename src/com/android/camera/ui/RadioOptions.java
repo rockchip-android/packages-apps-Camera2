@@ -125,6 +125,10 @@ public class RadioOptions extends TopRightWeightedLayout {
             if (mOnOptionClickListener != null) {
                 mOnOptionClickListener.onOptionClicked(view);
             }
+        } else {
+            for (int i = 0; i < getChildCount(); i++) {
+                getChildAt(i).setBackground(null);
+            }
         }
     }
 }

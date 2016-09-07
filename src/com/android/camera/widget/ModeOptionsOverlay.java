@@ -27,12 +27,14 @@ import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 
 import com.android.camera.CaptureLayoutHelper;
 import com.android.camera.ShutterButton;
 import com.android.camera.debug.Log;
 import com.android.camera.ui.PreviewOverlay;
 import com.android.camera.ui.TouchCoordinate;
+import com.android.camera.util.CameraUtil;
 import com.android.camera2.R;
 
 /**
@@ -55,6 +57,10 @@ public class ModeOptionsOverlay extends FrameLayout
     // need a reference to fix the rotation on orientation change
     private ImageView mThreeDots;
     private CaptureLayoutHelper mCaptureLayoutHelper = null;
+
+    private ModeOptionsScreenEffects mModeOptionsScreenEffects;
+
+    private SeekBar mManualFocusBar;
 
     public ModeOptionsOverlay(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -119,7 +125,14 @@ public class ModeOptionsOverlay extends FrameLayout
         });
         mModeOptions.setViewToShowHide(mModeOptionsToggle);
 
+        mModeOptionsScreenEffects = (ModeOptionsScreenEffects) findViewById(R.id.mode_options_screen);
+        mModeOptions.setScreenEffectsView(mModeOptionsScreenEffects);
+
         mThreeDots = (ImageView) findViewById(R.id.three_dots);
+
+        mManualFocusBar = (SeekBar) findViewById(R.id.manual_focus);
+        mModeOptions.setViewToOverlay(mManualFocusBar);
+        checkOrientation(getResources().getConfiguration().orientation);
     }
 
     @Override
@@ -144,7 +157,23 @@ public class ModeOptionsOverlay extends FrameLayout
 
     @Override
     public void onShutterButtonLongPressed() {
-        // noop
+        // TODO Auto-generated method stub
+        closeModeOptions();
+    }
+
+    @Override
+    public void onShutterButtonLongClickRelease() {
+        // TODO Auto-generated method stub
+        
+    }
+
+    public boolean onBackPressed() {
+        if (mModeOptions.getVisibility() == View.VISIBLE || 
+                mModeOptionsScreenEffects.getVisibility() == View.VISIBLE) {
+            closeModeOptions();
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -154,6 +183,20 @@ public class ModeOptionsOverlay extends FrameLayout
      */
     public void closeModeOptions() {
         mModeOptions.animateHidden();
+        mModeOptionsScreenEffects.animateHidden();
+    }
+
+    public void closeModeOptions(boolean showToggle) {
+        mModeOptions.animateHidden(showToggle);
+        mModeOptionsScreenEffects.animateHidden();
+    }
+
+    public void closeManualFocusBar() {
+        if (mManualFocusBar != null) {
+            View parent = (View) mManualFocusBar.getParent();
+            if (parent != null && parent.getVisibility() == View.VISIBLE)
+                mManualFocusBar.setVisibility(View.GONE);
+        }
     }
 
     @Override
@@ -181,7 +224,7 @@ public class ModeOptionsOverlay extends FrameLayout
      * Set the layout gravity of the child layout to be bottom or top right
      * depending on orientation.
      */
-    private void checkOrientation(int orientation) {
+    public void checkOrientation(int orientation) {
         final boolean isPortrait = (Configuration.ORIENTATION_PORTRAIT == orientation);
 
         final int modeOptionsDimension = (int) getResources()
@@ -192,6 +235,12 @@ public class ModeOptionsOverlay extends FrameLayout
         FrameLayout.LayoutParams modeOptionsToggleParams
             = (FrameLayout.LayoutParams) mModeOptionsToggle.getLayoutParams();
 
+        LinearLayout manualFocusParent = (LinearLayout) mManualFocusBar.getParent();
+        FrameLayout.LayoutParams manualFocusParentParams
+            = (FrameLayout.LayoutParams) manualFocusParent.getLayoutParams();
+        LinearLayout.LayoutParams manulFocusParams
+            = (LinearLayout.LayoutParams) mManualFocusBar.getLayoutParams();
+
         if (isPortrait) {
             modeOptionsParams.height = modeOptionsDimension;
             modeOptionsParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
@@ -200,6 +249,22 @@ public class ModeOptionsOverlay extends FrameLayout
             modeOptionsToggleParams.gravity = BOTTOM_RIGHT;
 
             mThreeDots.setImageResource(R.drawable.ic_options_port);
+
+            manualFocusParent.setOrientation(LinearLayout.HORIZONTAL);
+            int left = (int) getResources().getDimension(R.dimen.manual_focus_seek_padding);
+            int top = 0;
+            int right = (int) getResources().getDimension(R.dimen.manual_focus_seek_padding);
+            int bottom = 0;
+            manualFocusParent.setPadding(left, top, right, bottom);
+            manualFocusParent.setBackgroundResource(R.drawable.ic_manual_focus_tip_horizontal);
+            manualFocusParentParams.height = modeOptionsDimension;
+            manualFocusParentParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            manualFocusParentParams.gravity = Gravity.BOTTOM;
+
+            manulFocusParams.width = ViewGroup.LayoutParams.MATCH_PARENT;
+            manulFocusParams.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+
+            mManualFocusBar.setBackgroundResource(R.drawable.ic_manual_focus_progress_horizontal);
         } else {
             modeOptionsParams.width = modeOptionsDimension;
             modeOptionsParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
@@ -208,8 +273,30 @@ public class ModeOptionsOverlay extends FrameLayout
             modeOptionsToggleParams.gravity = TOP_RIGHT;
 
             mThreeDots.setImageResource(R.drawable.ic_options_land);
+
+            manualFocusParent.setOrientation(LinearLayout.VERTICAL);
+            int left = 0;
+            int top = (int) getResources().getDimension(R.dimen.manual_focus_seek_padding);
+            int right = 0;
+            int bottom = (int) getResources().getDimension(R.dimen.manual_focus_seek_padding);
+            manualFocusParent.setPadding(left, top, right, bottom);
+            manualFocusParent.setBackgroundResource(R.drawable.ic_manual_focus_tip_vertical);
+            manualFocusParentParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
+            manualFocusParentParams.width = modeOptionsDimension;
+            manualFocusParentParams.gravity = Gravity.RIGHT;
+
+            manulFocusParams.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+            manulFocusParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
+
+            mManualFocusBar.setBackgroundResource(R.drawable.ic_manual_focus_progress_vertical);
         }
 
         requestLayout();
     }
+
+    public void updateUIByOrientation() {
+        mModeOptionsScreenEffects.setRotation(CameraUtil.mUIRotated);
+        mModeOptions.updateUIByOrientation();
+    }
+
 }

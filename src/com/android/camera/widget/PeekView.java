@@ -143,10 +143,30 @@ public class PeekView extends ImageView {
         });
 
         mRotateScale = (strong ? 1.0f : 0.5f);
+        if (mImageDrawable != null) {
+            if (mImageDrawable instanceof BitmapDrawable) {
+                Bitmap b = ((BitmapDrawable) mImageDrawable).getBitmap();
+                if (b != null && !b.isRecycled()) {
+                    b.recycle();
+                    b = null;
+                }
+            }
+        }
         mImageDrawable = new BitmapDrawable(getResources(), bitmap);
         Point drawDim = CameraUtil.resizeToFill(mImageDrawable.getIntrinsicWidth(),
                 mImageDrawable.getIntrinsicHeight(), 0, (int) (getWidth() * FILMSTRIP_SCALE),
                 (int) (getHeight() * FILMSTRIP_SCALE));
+        if (!CameraUtil.AUTO_ROTATE_SENSOR) {
+            if (CameraUtil.mIsPortrait) {
+                drawDim = CameraUtil.resizeToFill(mImageDrawable.getIntrinsicWidth(),
+                        mImageDrawable.getIntrinsicHeight(), 0, (int) (getWidth() * FILMSTRIP_SCALE),
+                        (int) (getHeight() * FILMSTRIP_SCALE));
+            } else {
+                drawDim = CameraUtil.resizeToFill(mImageDrawable.getIntrinsicWidth(),
+                        mImageDrawable.getIntrinsicHeight(), 0, (int) (getHeight() * FILMSTRIP_SCALE),
+                        (int) (getWidth() * FILMSTRIP_SCALE));
+            }
+        }
         int x = getMeasuredWidth();
         int y = (getMeasuredHeight() - drawDim.y) / 2;
         mDrawableBound = new Rect(x, y, x + drawDim.x, y + drawDim.y);

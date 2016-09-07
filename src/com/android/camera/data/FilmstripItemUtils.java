@@ -147,7 +147,16 @@ public class FilmstripItemUtils {
         if (orientation != 0 && b != null) {
             Matrix m = new Matrix();
             m.setRotate(orientation);
-            b = Bitmap.createBitmap(b, 0, 0, b.getWidth(), b.getHeight(), m, false);
+            try {
+                Bitmap b1 = Bitmap.createBitmap(b, 0, 0, b.getWidth(), b.getHeight(), m, false);
+                if (b1 != b) {
+                    b.recycle();
+                    b = b1;
+                }
+            } catch (OutOfMemoryError e) {
+                // We have no memory to rotate. Return the original bitmap.
+                System.gc();
+            }
         }
 
         return b;

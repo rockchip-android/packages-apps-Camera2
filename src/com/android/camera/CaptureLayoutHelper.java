@@ -53,6 +53,8 @@ public class CaptureLayoutHelper implements CameraAppUI.NonDecorWindowSizeChange
     private int mRotation = 0;
     private boolean mShowBottomBar = true;
 
+    private CameraActivity mActivity;
+
     /**
      * PositionConfiguration contains the layout info for bottom bar and preview
      * rect, as well as whether bottom bar should be overlaid on top of preview.
@@ -77,6 +79,10 @@ public class CaptureLayoutHelper implements CameraAppUI.NonDecorWindowSizeChange
         mBottomBarMinHeight = bottomBarMinHeight;
         mBottomBarMaxHeight = bottomBarMaxHeight;
         mBottomBarOptimalHeight = bottomBarOptimalHeight;
+    }
+
+    public void setActivity(CameraActivity activity) {
+        mActivity = activity;
     }
 
     @Override
@@ -177,31 +183,31 @@ public class CaptureLayoutHelper implements CameraAppUI.NonDecorWindowSizeChange
 
         if (mWindowHeight > mWindowWidth) {
             // Portrait.
-            if (mRotation >= 180) {
-                // Reverse portrait, bottom bar align top.
-                return new RectF(mPositionConfiguration.mPreviewRect.left,
-                        mPositionConfiguration.mBottomBarRect.bottom,
-                        mPositionConfiguration.mPreviewRect.right,
-                        mPositionConfiguration.mPreviewRect.bottom);
-            } else {
+//            if (mRotation >= 180) {
+//                // Reverse portrait, bottom bar align top.
+//                return new RectF(mPositionConfiguration.mPreviewRect.left,
+//                        mPositionConfiguration.mBottomBarRect.bottom,
+//                        mPositionConfiguration.mPreviewRect.right,
+//                        mPositionConfiguration.mPreviewRect.bottom);
+//            } else {
                 return new RectF(mPositionConfiguration.mPreviewRect.left,
                         mPositionConfiguration.mPreviewRect.top,
                         mPositionConfiguration.mPreviewRect.right,
                         mPositionConfiguration.mBottomBarRect.top);
-            }
+//            }
         } else {
-            if (mRotation >= 180) {
-                // Reverse landscape, bottom bar align left.
-                return new RectF(mPositionConfiguration.mBottomBarRect.right,
-                        mPositionConfiguration.mPreviewRect.top,
-                        mPositionConfiguration.mPreviewRect.right,
-                        mPositionConfiguration.mPreviewRect.bottom);
-            } else {
+//            if (mRotation >= 180) {
+//                // Reverse landscape, bottom bar align left.
+//                return new RectF(mPositionConfiguration.mBottomBarRect.right,
+//                        mPositionConfiguration.mPreviewRect.top,
+//                        mPositionConfiguration.mPreviewRect.right,
+//                        mPositionConfiguration.mPreviewRect.bottom);
+//            } else {
                 return new RectF(mPositionConfiguration.mPreviewRect.left,
                         mPositionConfiguration.mPreviewRect.top,
                         mPositionConfiguration.mBottomBarRect.left,
                         mPositionConfiguration.mPreviewRect.bottom);
-            }
+//            }
         }
     }
 
@@ -222,10 +228,13 @@ public class CaptureLayoutHelper implements CameraAppUI.NonDecorWindowSizeChange
 
     @Override
     public void onNonDecorWindowSizeChanged(int width, int height, int rotation) {
+        boolean changed = (mWindowWidth != width) || (mWindowHeight != height);
         mWindowWidth = width;
         mWindowHeight = height;
         mRotation = rotation;
         updatePositionConfiguration();
+        if (mActivity != null && changed)
+            mActivity.onNonDecorWindowSizeChanged();
     }
 
     /**
@@ -346,14 +355,14 @@ public class CaptureLayoutHelper implements CameraAppUI.NonDecorWindowSizeChange
             }
         }
 
-        if (rotation >= 180) {
-            // Rotate 180 degrees.
-            Matrix rotate = new Matrix();
-            rotate.setRotate(180, width / 2, height / 2);
-
-            rotate.mapRect(config.mPreviewRect);
-            rotate.mapRect(config.mBottomBarRect);
-        }
+//        if (rotation >= 180) {
+//            // Rotate 180 degrees.
+//            Matrix rotate = new Matrix();
+//            rotate.setRotate(180, width / 2, height / 2);
+//
+//            rotate.mapRect(config.mPreviewRect);
+//            rotate.mapRect(config.mBottomBarRect);
+//        }
 
         // Round the rect first to avoid rounding errors later on.
         round(config.mBottomBarRect);

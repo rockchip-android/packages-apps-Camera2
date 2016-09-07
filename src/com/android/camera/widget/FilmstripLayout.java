@@ -30,6 +30,7 @@ import android.os.Looper;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.MeasureSpec;
 import android.view.animation.AnimationUtils;
 import android.widget.FrameLayout;
 
@@ -37,6 +38,7 @@ import com.android.camera.filmstrip.FilmstripContentPanel;
 import com.android.camera.filmstrip.FilmstripController;
 import com.android.camera.ui.FilmstripGestureRecognizer;
 import com.android.camera.util.ApiHelper;
+import com.android.camera.util.CameraUtil;
 import com.android.camera.util.Gusterpolator;
 import com.android.camera2.R;
 
@@ -213,6 +215,30 @@ public class FilmstripLayout extends FrameLayout implements FilmstripContentPane
             mListener.onEnterFilmstrip(currentId);
         } else if (controller.inFullScreen()) {
             mListener.onEnterFullScreenUiShown(currentId);
+        }
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        // TODO Auto-generated method stub
+        if (!CameraUtil.AUTO_ROTATE_SENSOR) {
+            if (!CameraUtil.mIsPortrait && MeasureSpec.getSize(widthMeasureSpec)
+                    < MeasureSpec.getSize(heightMeasureSpec)) {
+                int tmp = widthMeasureSpec;
+                widthMeasureSpec = heightMeasureSpec;
+                heightMeasureSpec = tmp;
+            }
+        }
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        if (!CameraUtil.AUTO_ROTATE_SENSOR) {
+            if (CameraUtil.mIsPortrait) {
+                setTranslationX(0);
+                setTranslationY(0);
+            } else {
+                setTranslationX((getMeasuredHeight() - getMeasuredWidth()) / 2);
+                setTranslationY((getMeasuredWidth() - getMeasuredHeight()) / 2);
+            }
+            setRotation(CameraUtil.mUIRotated);
         }
     }
 

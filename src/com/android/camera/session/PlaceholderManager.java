@@ -184,22 +184,27 @@ public class PlaceholderManager {
                 new String[] {
                         MediaStore.Images.Media.DATE_TAKEN, MediaStore.Images.Media.DISPLAY_NAME,
                 }, null, null, null);
-        // The count could be 0 if the original media item was deleted before
-        // the session was created.
-        if (cursor == null || cursor.getCount() == 0) {
-            return null;
+        try {
+            // The count could be 0 if the original media item was deleted before
+            // the session was created.
+            if (cursor == null || cursor.getCount() == 0) {
+                return null;
+            }
+            int dateIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_TAKEN);
+            int nameIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME);
+    
+            cursor.moveToFirst();
+            long date = cursor.getLong(dateIndex);
+            String name = cursor.getString(nameIndex);
+    
+            if (name.toLowerCase().endsWith(Storage.JPEG_POSTFIX)) {
+                name = name.substring(0, name.length() - Storage.JPEG_POSTFIX.length());
+            }
+    
+            return new Placeholder(name, uri, date);
+        } finally {
+            if (cursor != null)
+                cursor.close();
         }
-        int dateIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_TAKEN);
-        int nameIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DISPLAY_NAME);
-
-        cursor.moveToFirst();
-        long date = cursor.getLong(dateIndex);
-        String name = cursor.getString(nameIndex);
-
-        if (name.toLowerCase().endsWith(Storage.JPEG_POSTFIX)) {
-            name = name.substring(0, name.length() - Storage.JPEG_POSTFIX.length());
-        }
-
-        return new Placeholder(name, uri, date);
     }
 }

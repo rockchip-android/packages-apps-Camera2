@@ -33,22 +33,30 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 
 import com.android.camera.MultiToggleImageButton;
+import com.android.camera.debug.Log;
 import com.android.camera.ui.RadioOptions;
 import com.android.camera.ui.TopRightWeightedLayout;
+import com.android.camera.util.CameraUtil;
 import com.android.camera.util.Gusterpolator;
 import com.android.camera2.R;
 
 import java.util.ArrayList;
 
 public class ModeOptions extends FrameLayout {
+    private final Log.Tag TAG = new Log.Tag("ModeOptions");
     private int mBackgroundColor;
     private final Paint mPaint = new Paint();
     private boolean mIsHiddenOrHiding;
+    private boolean mShouldShowModeOptionsToggle;
     private RectF mAnimateFrom = new RectF();
     private View mViewToShowHide;
+    private View mViewToOverlay;
     private TopRightWeightedLayout mModeOptionsButtons;
     private RadioOptions mModeOptionsPano;
     private RadioOptions mModeOptionsExposure;
+    private RadioOptions mModeOptionsWhiteBalance;
+
+    private ModeOptionsScreenEffects mModeOptionsScreenEffects;
 
     private AnimatorSet mVisibleAnimator;
     private AnimatorSet mHiddenAnimator;
@@ -67,6 +75,8 @@ public class ModeOptions extends FrameLayout {
 
     private boolean mIsPortrait;
     private float mRadius = 0f;
+
+    private boolean mShowScreenEffectsModeOptions;
 
     /**
      * A class implementing this interface will receive callback events from
@@ -115,16 +125,68 @@ public class ModeOptions extends FrameLayout {
         mViewToShowHide = v;
     }
 
+    public void setViewToOverlay(View v) {
+        mViewToOverlay = v;
+    }
+
+    private boolean isOtherViewOverlay() {
+        if (mViewToOverlay != null){
+            View parent = (View) mViewToOverlay.getParent();
+            if (parent != null && parent.getVisibility() == View.VISIBLE)
+                return true;
+        }
+        return false;
+    }
+
+    public void setScreenEffectsView(ModeOptionsScreenEffects options) {
+        mModeOptionsScreenEffects = options;
+    }
+
+    public void setScreenEffectOptionsEnabled(boolean enable) {
+        mShowScreenEffectsModeOptions = enable;
+    }
+
     @Override
     public void onFinishInflate() {
         mIsHiddenOrHiding = true;
+        mShouldShowModeOptionsToggle = true;
         mBackgroundColor = getResources().getColor(R.color.mode_options_background);
         mPaint.setAntiAlias(true);
         mPaint.setColor(mBackgroundColor);
         mModeOptionsButtons = (TopRightWeightedLayout) findViewById(R.id.mode_options_buttons);
         mModeOptionsPano = (RadioOptions) findViewById(R.id.mode_options_pano);
         mModeOptionsExposure = (RadioOptions) findViewById(R.id.mode_options_exposure);
+        mModeOptionsWhiteBalance = (RadioOptions) findViewById(R.id.mode_options_whitebalance);
         mMainBar = mActiveBar = mModeOptionsButtons;
+
+        ImageButton exposureButton = (ImageButton) findViewById(R.id.exposure_button);
+        exposureButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mShowScreenEffectsModeOptions) {
+                    if (mModeOptionsScreenEffects != null) {
+                        if (mModeOptionsScreenEffects.getVisibility() != View.VISIBLE)
+                            mModeOptionsScreenEffects.animateVisible();
+                        else
+                            mModeOptionsScreenEffects.animateHidden();
+                    }
+                } else {
+                    mActiveBar = mModeOptionsExposure;
+                    mMainBar.setVisibility(View.INVISIBLE);
+                    mActiveBar.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+
+        ImageButton whiteBalanceButton = (ImageButton) findViewById(R.id.wb_button);
+        whiteBalanceButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mActiveBar = mModeOptionsWhiteBalance;
+                mMainBar.setVisibility(View.INVISIBLE);
+                mActiveBar.setVisibility(View.VISIBLE);
+            }
+        });
     }
 
     public void showExposureOptions() {
@@ -170,9 +232,11 @@ public class ModeOptions extends FrameLayout {
             if (mActiveBar != null && mActiveBar != mMainBar) {
                 mActiveBar.setVisibility(INVISIBLE);
             }
-            if (mViewToShowHide != null) {
+            if (mViewToShowHide != null && mShouldShowModeOptionsToggle
+                    && !isOtherViewOverlay()) {
                 mViewToShowHide.setVisibility(VISIBLE);
             }
+            mShouldShowModeOptionsToggle = true;
             mIsHiddenOrHiding = true;
         }
     }
@@ -336,7 +400,10 @@ public class ModeOptions extends FrameLayout {
                 @Override
                 public void onAnimationEnd(Animator animation) {
                     if (mViewToShowHide != null) {
-                        mViewToShowHide.setVisibility(View.VISIBLE);
+                        if (mShouldShowModeOptionsToggle && !isOtherViewOverlay()) {
+                            mViewToShowHide.setVisibility(View.VISIBLE);
+                        }
+                        mShouldShowModeOptionsToggle = true;
                         mDrawCircle = false;
                         mFill = false;
                         invalidate();
@@ -400,5 +467,24 @@ public class ModeOptions extends FrameLayout {
             }
         }
         mIsHiddenOrHiding = true;
+    }
+
+    public void animateHidden(boolean showToggle) {
+        if (!mIsHiddenOrHiding) {
+            mVisibleAnimator.cancel();
+            mHiddenAnimator.end();
+            mShouldShowModeOptionsToggle = showToggle;
+            mHiddenAnimator.start();
+        }
+        mIsHiddenOrHiding = true;
+    }
+
+    public void updateUIByOrientation() {
+        for (int i = 0; i < mModeOptionsButtons.getChildCount(); i++)
+            mModeOptionsButtons.getChildAt(i).setRotation(CameraUtil.mUIRotated);
+        for (int i = 0; i < mModeOptionsExposure.getChildCount(); i++)
+            mModeOptionsExposure.getChildAt(i).setRotation(CameraUtil.mUIRotated);
+        for (int i = 0; i < mModeOptionsWhiteBalance.getChildCount(); i++)
+            mModeOptionsWhiteBalance.getChildAt(i).setRotation(CameraUtil.mUIRotated);
     }
 }

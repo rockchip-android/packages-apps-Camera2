@@ -160,7 +160,7 @@
     <string name="dialog_cancel" msgid="692365061128351656">"取消"</string>
     <string name="dialog_report" msgid="7616428760369876209">"报告"</string>
     <string name="dialog_dismiss" msgid="1382550604990470119">"关闭"</string>
-    <string name="spaceIsLow_content" product="default" msgid="4522771065344332702">"SD卡空间不足。请更改画质设置，或删除部分图片或其他文件。"</string>
+    <string name="spaceIsLow_content" product="default" msgid="4522771065344332702">"设备空间不足。请更改画质设置，或删除部分图片或其他文件。"</string>
     <string name="video_reach_size_limit" msgid="9196836111505731836">"已达文件大小上限。"</string>
     <string name="pano_too_fast_prompt" msgid="2503148095578052177">"速度太快"</string>
     <string name="pano_dialog_prepare_preview" msgid="4445235163599534263">"正在生成全景照片"</string>
@@ -379,4 +379,66 @@
     <string name="pref_boolean_false" msgid="461317129020087333">"0"</string>
     <string name="pref_boolean_true" msgid="4131945223998878009">"1"</string>
     <string name="session_saving_image" msgid="8932315404486416826">"正在保存…"</string>
+
+    <string name="scene_mode_auto">自动</string>
+    <string name="scene_mode_portrait">肖像</string>
+    <string name="scene_mode_landscape">风景</string>
+    <string name="scene_mode_night">夜景</string>
+    <string name="scene_mode_sports">运动</string>
+    <string name="scene_mode_barcode">微距</string>
+
+    <string name="pref_camera_sound_title">拍照声音</string>
+
+    <string name="pref_burst_saving">连拍照片保存中,请稍后...</string>
+    <string name="pref_burst_finish">连拍照片保存成功</string>
+
+    <string name="color_none">原图</string>
+    <string name="color_mono">黑白</string>
+    <string name="color_negative">底片</string>
+    <string name="color_sepia">深褐色</string>
+
+    <string name="pref_preview_fullsize_title">全屏预览</string>
+
+    <!-- Accessibility text for zsl toggle button states [CHAR_LIMIT=NONE] -->
+    <string name="zsl_off_desc">ZSL已关闭</string>
+    <string name="zsl_on_desc">ZSL已开启</string>
+
+    <!-- Accessibility text for smile shutter toggle button states [CHAR_LIMIT=NONE] -->
+    <string name="smile_shutter_off_desc">笑脸拍照已关闭</string>
+    <string name="smile_shutter_on_desc">笑脸拍照已开启</string>
+
+    <string name="exposure_options_lable">曝光</string>
+    <string name="saturation_options_lable">饱和度</string>
+    <string name="contrast_options_lable">对比度</string>
+    <string name="brightness_options_lable">亮度</string>
+    <string name="sharpness_options_lable">锐度</string>
+    <string name="hue_options_lable">色调</string>
+
+    <string name="pref_camera_screen_effects">色彩处理</string>
+
+    <string name="smile_shutter_tip">按下快门后, 相机检测到笑脸后自动拍照.</string>
+
+    <string name="pref_restore_default_settings_title">还原默认设置</string>
+    <string name="pref_restore_default_settings_msg">还原相机默认设置?</string>
+
+    <string name="setting_camera_antibanding">防闪烁</string>
+    <string name="setting_antibanding_off_summary">关闭</string>
+    <string name="setting_antibanding_50hz_summary">50 HZ</string>
+    <string name="setting_antibanding_60hz_summary">60 HZ</string>
+    <string name="setting_antibanding_auto_summary">自动</string>
+
+    <string name="back_to_exit_msg">再按一次退出相机</string>
+    <string name="gallery_name">图库</string>
+
+    <string name="pref_face_detection_enabled_title">人脸识别</string>
+    <string name="smile_shutter_auto_tip">相机检测到笑脸后自动拍照</string>
+
+    <string name="setting_media_save_path">照片和录像保存位置</string>
+    <string name="media_save_path_flash_label">相机默认存储路径</string>
+    <string name="media_save_path_external_sd_label">外置SD卡</string>
+    <string name="external_sd_unmounted">外置SD卡未挂载</string>
+    <string name="external_sd_pull_out">外置SD卡被拔出,退出相机</string>
+    <!-- Low-memory dialog message [CHAR LIMIT=NONE] -->
+    <string name="flash_spaceIsLow_content" product="default">默认存储空间已满,请切换到外部SD卡.</string>
+    <string name="exsd_spaceIsLow_content" product="default">外部SD卡存储空间已满,请切换到默认存储.</string>
 </resources>

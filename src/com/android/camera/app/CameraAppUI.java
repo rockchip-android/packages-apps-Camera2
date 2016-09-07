@@ -16,30 +16,36 @@
 
 package com.android.camera.app;
 
+import android.content.pm.ActivityInfo;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
+import android.hardware.Camera;
 import android.hardware.display.DisplayManager;
 import android.util.CameraPerformanceTracker;
 import android.view.GestureDetector;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.TextureView;
 import android.view.View;
+import android.view.View.MeasureSpec;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
-
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import com.android.camera.AccessibilityUtil;
 import com.android.camera.AnimationManager;
 import com.android.camera.ButtonManager;
 import com.android.camera.CaptureLayoutHelper;
 import com.android.camera.ShutterButton;
 import com.android.camera.TextureViewHelper;
+import com.android.camera.debug.DebugPropertyHelper;
 import com.android.camera.debug.Log;
 import com.android.camera.filmstrip.FilmstripContentPanel;
 import com.android.camera.hardware.HardwareSpec;
@@ -47,11 +53,13 @@ import com.android.camera.module.ModuleController;
 import com.android.camera.settings.Keys;
 import com.android.camera.settings.SettingsManager;
 import com.android.camera.ui.AbstractTutorialOverlay;
+import com.android.camera.ui.AverageRadioOptions;
 import com.android.camera.ui.BottomBar;
 import com.android.camera.ui.CaptureAnimationOverlay;
 import com.android.camera.ui.GridLines;
 import com.android.camera.ui.MainActivityLayout;
 import com.android.camera.ui.ModeListView;
+import com.android.camera.ui.ModeOptionsToggle;
 import com.android.camera.ui.ModeTransitionView;
 import com.android.camera.ui.PreviewOverlay;
 import com.android.camera.ui.PreviewStatusListener;
@@ -69,6 +77,10 @@ import com.android.camera.widget.IndicatorIconController;
 import com.android.camera.widget.ModeOptionsOverlay;
 import com.android.camera.widget.RoundedThumbnailView;
 import com.android.camera2.R;
+import com.android.ex.camera2.portability.CameraCapabilities;
+
+import java.util.List;
+import java.util.Set;
 
 /**
  * CameraAppUI centralizes control of views shared across modules. Whereas module
@@ -475,6 +487,68 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
          * disabled.
          */
         public boolean showSelfTimer = false;
+        
+        public boolean enableWhiteBalance = false;
+        public Set<CameraCapabilities.WhiteBalance> supportedWhiteBalances;
+        public interface WhiteBalanceSetCallback {
+            public void setWhiteBalance(String value);
+        }
+        public WhiteBalanceSetCallback whiteBalanceSetCallback;
+        
+        public boolean enableSaturation = false;
+        public List<String> supportedSaturations;
+        public interface SaturationSetCallback {
+            public void setSaturation(String value);
+        }
+        public SaturationSetCallback saturationSetCallback;
+        
+        public boolean enableContrast = false;
+        public List<String> supportedContrasts;
+        public interface ContrastSetCallback {
+            public void setContrast(String value);
+        }
+        public ContrastSetCallback contrastSetCallback;
+        
+        public boolean enableSharpness = false;
+        public List<String> supportedSharpnesses;
+        public interface SharpnessSetCallback {
+            public void setSharpness(String value);
+        }
+        public SharpnessSetCallback sharpnessSetCallback;
+        
+        public boolean enableBrightness = false;
+        public List<String> supportedBrightnesses;
+        public interface BrightnessSetCallback {
+            public void setBrightness(String value);
+        }
+        public BrightnessSetCallback brightnessSetCallback;
+        
+        public boolean enableHue = false;
+        public List<String> supportedHues;
+        public interface HueSetCallback {
+            public void setHue(String value);
+        }
+        public HueSetCallback hueSetCallback;
+        
+        public boolean enableScene = false;
+        public Set<CameraCapabilities.SceneMode> supportedSceneModes;
+        public interface SceneSetCallback {
+            public void setScene(String value);
+        }
+        public SceneSetCallback sceneSetCallback;
+        
+        public boolean enableColorEffect = false;
+        public List<String> supportedColorEffects;
+        public interface ColorEffectSetCallback {
+            public void setColorEffect(String value);
+        }
+        public ColorEffectSetCallback colorEffectSetCallback;
+        
+        public boolean enableZsl = false;
+        public ButtonManager.ButtonCallback zslCallback;
+        
+        public boolean enableSmileShutter = false;
+        public ButtonManager.ButtonCallback smileShutterCallback;
     }
 
 
@@ -485,11 +559,11 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
     private final AnimationManager mAnimationManager;
 
     // Swipe states:
-    private final static int IDLE = 0;
-    private final static int SWIPE_UP = 1;
-    private final static int SWIPE_DOWN = 2;
-    private final static int SWIPE_LEFT = 3;
-    private final static int SWIPE_RIGHT = 4;
+    public final static int IDLE = 0;
+    public final static int SWIPE_UP = 1;
+    public final static int SWIPE_DOWN = 2;
+    public final static int SWIPE_LEFT = 3;
+    public final static int SWIPE_RIGHT = 4;
     private boolean mSwipeEnabled = true;
 
     // Shared Surface Texture properities.
@@ -522,6 +596,7 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
     private TextureView mTextureView;
     private FrameLayout mModuleUI;
     private ShutterButton mShutterButton;
+    private ImageView mShutterButtonIcon;
     private ImageButton mCountdownCancelButton;
     private BottomBar mBottomBar;
     private ModeOptionsOverlay mModeOptionsOverlay;
@@ -569,6 +644,17 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
     /** Used to track the last scope used to update the bottom bar UI. */
     private String mCurrentCameraScope;
     private String mCurrentModuleScope;
+
+    private ImageButton mColorButton;
+    private ImageButton mSceneButton;
+    private AverageRadioOptions mColorModeOptions;
+    private AverageRadioOptions mSceneModeOptions;
+
+    private boolean mModeSelecting = false;
+
+    public CaptureLayoutHelper getCaptureLayoutHelper() {
+        return mCaptureLayoutHelper;
+    }
 
     /**
      * Provides current preview frame and the controls/overlay from the module that
@@ -644,6 +730,16 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
                     Bitmap overlay = getPreviewOverlayAndControls();
                     if (overlay != null) {
                         canvas.drawBitmap(overlay, 0f, 0f, null);
+                    }
+                    if (preview != null) {
+                        Log.i(TAG, "====recycle preview bitmap====");
+                        preview.recycle();
+                        preview = null;
+                    }
+                    if (overlay != null) {
+                        Log.i(TAG, "====recycle overlay bitmap====");
+                        overlay.recycle();
+                        overlay = null;
                     }
                     return screenshot;
                 }
@@ -745,15 +841,42 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
 
             int deltaX = (int) (ev.getX() - mDown.getX());
             int deltaY = (int) (ev.getY() - mDown.getY());
+            if (!CameraUtil.AUTO_ROTATE_SENSOR) {
+                if (CameraUtil.mScreenOrientation
+                        == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE) {
+                    deltaX = (int) (ev.getY() - mDown.getY());
+                    deltaY = (int) (mDown.getX() - ev.getX());
+                } else if (CameraUtil.mScreenOrientation
+                        == ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT) {
+                    deltaX = (int) (mDown.getX() - ev.getX());
+                    deltaY = (int) (mDown.getY() - ev.getY());
+                } else if (CameraUtil.mScreenOrientation
+                        == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+                    deltaX = (int) (mDown.getY() - ev.getY());
+                    deltaY = (int) (ev.getX() - mDown.getX());
+                }
+            }
             if (ev.getActionMasked() == MotionEvent.ACTION_MOVE) {
                 if (Math.abs(deltaX) > mSlop || Math.abs(deltaY) > mSlop) {
                     // Calculate the direction of the swipe.
                     if (deltaX >= Math.abs(deltaY)) {
+                        Log.i(TAG, "SWIPE_RIGHT");
                         // Swipe right.
                         setSwipeState(SWIPE_RIGHT);
+                        mModeOptionsOverlay.closeManualFocusBar();
                     } else if (deltaX <= -Math.abs(deltaY)) {
+                        Log.i(TAG, "SWIPE_LEFT");
                         // Swipe left.
                         setSwipeState(SWIPE_LEFT);
+                        mModeOptionsOverlay.closeManualFocusBar();
+                    } else if (deltaY >= Math.abs(deltaX)
+                        && mModeListView.getVisibility() != View.VISIBLE) {
+                        Log.i(TAG, "SWIPE_DOWN");
+                        mSwipeState = SWIPE_DOWN;
+                    } else if (deltaY <= -Math.abs(deltaX)
+                        && mModeListView.getVisibility() != View.VISIBLE) {
+                        Log.i(TAG, "SWIPE_UP");
+                        mSwipeState = SWIPE_UP;
                     }
                 }
             }
@@ -911,6 +1034,10 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         // on shutter button and mode options. (More details: b/13751653)
         mAppRootView.setSwipeEnabled(enabled);
     }
+    
+    public int getSwipeState() {
+        return mSwipeState;
+    }
 
     public void onDestroy() {
 	 Log.d(TAG, "CameraAppUI==========onDestroy()");
@@ -1055,6 +1182,10 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
                 if (!mDisableAllUserInteractions) {
                     showShimmyDelayed();
                 }
+                if (mModeSelecting) {
+                    mModeListView.hide();
+                    mModeSelecting = false;
+                }
             }
         };
         mModeCoverState = COVER_SHOWN;
@@ -1078,6 +1209,9 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         }
     }
 
+    public boolean isModeCoverHide() {
+        return mModeCoverState == COVER_HIDDEN;
+    }
 
     public void onPreviewVisiblityChanged(int visibility) {
         if (visibility == ModuleController.VISIBILITY_HIDDEN) {
@@ -1157,6 +1291,12 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         // when the list is fully closed.
         mShutterButton.setAlpha(progress * ShutterButton.ALPHA_WHEN_ENABLED
                 + (1 - progress) * ShutterButton.ALPHA_WHEN_DISABLED);
+        mColorButton.setAlpha(progress * ShutterButton.ALPHA_WHEN_ENABLED
+                + (1 - progress) * ShutterButton.ALPHA_WHEN_DISABLED);
+        mSceneButton.setAlpha(progress * ShutterButton.ALPHA_WHEN_ENABLED
+                + (1 - progress) * ShutterButton.ALPHA_WHEN_DISABLED);
+        mShutterButtonIcon.setAlpha(progress * ShutterButton.ALPHA_WHEN_ENABLED
+                + (1 - progress) * ShutterButton.ALPHA_WHEN_DISABLED);
     }
 
     @Override
@@ -1175,6 +1315,9 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         // is closed.
         mModeOptionsToggle.setAlpha(1f);
         mShutterButton.setAlpha(ShutterButton.ALPHA_WHEN_ENABLED);
+        mColorButton.setAlpha(ShutterButton.ALPHA_WHEN_ENABLED);
+        mSceneButton.setAlpha(ShutterButton.ALPHA_WHEN_ENABLED);
+        mShutterButtonIcon.setAlpha(ShutterButton.ALPHA_WHEN_ENABLED);
     }
 
     /**
@@ -1185,8 +1328,10 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
     public boolean onBackPressed() {
         if (mFilmstripLayout.getVisibility() == View.VISIBLE) {
             return mFilmstripLayout.onBackPressed();
-        } else {
+        } else if (mModeListView.getVisibility() == View.VISIBLE) {
             return mModeListView.onBackPressed();
+        } else {
+            return mStickyBottomCaptureLayout.onBackPressed();
         }
     }
 
@@ -1222,6 +1367,7 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         View.OnTouchListener touchListener = mPreviewStatusListener.getTouchListener();
         if (touchListener != null) {
             mPreviewOverlay.setTouchListener(touchListener);
+            mAppRootView.setTouchUpListener(touchListener);
         }
 
         mTextureViewHelper.setAutoAdjustTransform(
@@ -1255,6 +1401,14 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
                         Keys.KEY_FLASH_SUPPORTED_BACK_CAMERA,
                         hardwareSpec.isFlashSupported());
             }
+            boolean flashBackCamera = mController.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL,
+                    Keys.KEY_FLASH_SUPPORTED_BACK_CAMERA);
+            if (DebugPropertyHelper.ONLY_ZSL_MODE.equals(DebugPropertyHelper.getCaptureMode()))
+                mController.getSettingsManager().setDefaults(Keys.KEY_BURST_CAPTURE_ON, true);
+            else if (DebugPropertyHelper.ONLY_NORMAL_MODE.equals(DebugPropertyHelper.getCaptureMode()))
+                mController.getSettingsManager().setDefaults(Keys.KEY_BURST_CAPTURE_ON, false);
+            else
+                mController.getSettingsManager().setDefaults(Keys.KEY_BURST_CAPTURE_ON, false);
             /** Similar logic applies to the HDR option. */
             if (!mController.getSettingsManager().isSet(SettingsManager.SCOPE_GLOBAL,
                     Keys.KEY_HDR_SUPPORT_MODE_BACK_CAMERA)) {
@@ -1329,6 +1483,13 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
 
         mModeOptionsOverlay
             = (ModeOptionsOverlay) mCameraRootView.findViewById(R.id.mode_options_overlay);
+           
+        mColorButton = (ImageButton) mCameraRootView.findViewById(R.id.color_button);
+        mSceneButton = (ImageButton) mCameraRootView.findViewById(R.id.scene_button);
+        mSceneModeOptions = (AverageRadioOptions) mCameraRootView.findViewById(R.id.scene_options);
+        mColorModeOptions = (AverageRadioOptions) mCameraRootView.findViewById(R.id.color_options);
+        mSceneModeOptions.setCaptureLayoutHelper(mCaptureLayoutHelper);
+        mColorModeOptions.setCaptureLayoutHelper(mCaptureLayoutHelper);
 
         // Sets the visibility of the bottom bar and the mode options.
         resetBottomControls(mController.getCurrentModuleController(),
@@ -1336,16 +1497,17 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         mModeOptionsOverlay.setCaptureLayoutHelper(mCaptureLayoutHelper);
 
         mShutterButton = (ShutterButton) mCameraRootView.findViewById(R.id.shutter_button);
+        mShutterButtonIcon = (ImageView) mCameraRootView.findViewById(R.id.shutter_button_icon);
+        addShutterListener(this);
         addShutterListener(mController.getCurrentModuleController());
         addShutterListener(mModeOptionsOverlay);
-        addShutterListener(this);
 
         mGridLines = (GridLines) mCameraRootView.findViewById(R.id.grid_lines);
         mTextureViewHelper.addPreviewAreaSizeChangedListener(mGridLines);
 
         mPreviewOverlay = (PreviewOverlay) mCameraRootView.findViewById(R.id.preview_overlay);
         mPreviewOverlay.setOnTouchListener(new MyTouchListener());
-        mPreviewOverlay.setOnPreviewTouchedListener(mModeOptionsOverlay);
+        mPreviewOverlay.addOnPreviewTouchedListener(mModeOptionsOverlay);
         mAccessibilityUtil = new AccessibilityUtil(mPreviewOverlay, mAccessibilityAffordances);
 
         mCaptureOverlay = (CaptureAnimationOverlay)
@@ -1363,6 +1525,23 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         mController.getSettingsManager().addListener(mIndicatorIconController);
 
         mModeOptionsToggle = mCameraRootView.findViewById(R.id.mode_options_toggle);
+        if (!CameraUtil.AUTO_ROTATE_SENSOR) {
+            ((ModeOptionsToggle) mModeOptionsToggle).setOnVisibilityOrLayoutChangedListener(
+                    new ModeOptionsToggle.OnVisibilityOrLayoutChangedListener() {
+
+                @Override
+                public void onVisibilityChanged() {
+                    // TODO Auto-generated method stub
+                    mIndicatorIconController.updateUIByOrientation();
+                }
+
+                @Override
+                public void onLayoutChanged() {
+                    // TODO Auto-generated method stub
+                    mIndicatorIconController.updateUIByOrientation();
+                }
+            });
+        }
         mFocusRing = (FocusRing) mCameraRootView.findViewById(R.id.focus_ring);
         mTutorialsPlaceHolderWrapper = (FrameLayout) mCameraRootView
                 .findViewById(R.id.tutorials_placeholder_wrapper);
@@ -1371,6 +1550,18 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         mStickyBottomCaptureLayout.setCaptureLayoutHelper(mCaptureLayoutHelper);
         mCountdownCancelButton = (ImageButton) mStickyBottomCaptureLayout
                 .findViewById(R.id.shutter_cancel_button);
+		mBottomBar.setBottomBarButtonClickListener(mStickyBottomCaptureLayout);
+        mPreviewOverlay.addOnPreviewTouchedListener(mStickyBottomCaptureLayout);
+        addShutterListener(mStickyBottomCaptureLayout);
+        
+        mSceneModeOptions.setViewToShowHide(mModeOptionsToggle);
+        mSceneModeOptions.setViewToOverlay(mCameraRootView.findViewById(R.id.manual_focus));
+        mSceneModeOptions.setDirection(AverageRadioOptions.LEFT_OR_TOP);
+        mSceneModeOptions.setMargin(mController.getAndroidContext().getResources()
+                .getDimension(R.dimen.scene_mode_item_margin));
+        mColorModeOptions.setViewToShowHide(mModeOptionsToggle);
+        mColorModeOptions.setViewToOverlay(mCameraRootView.findViewById(R.id.manual_focus));
+        mColorModeOptions.setDirection(AverageRadioOptions.RIGHT_OR_BOTTOM);
 
         mTextureViewHelper.addPreviewAreaSizeChangedListener(mModeListView);
         mTextureViewHelper.addAspectRatioChangedListener(
@@ -1407,6 +1598,8 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         mTutorialsPlaceHolderWrapper.setVisibility(View.GONE);
 
         setShutterButtonEnabled(true);
+        setShutterButtonLongClickEnabled(false);
+        mModeOptionsOverlay.closeManualFocusBar();
         mPreviewStatusListener = null;
         mPreviewOverlay.reset();
 
@@ -1489,6 +1682,12 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         // noop
     }
 
+    @Override
+    public void onShutterButtonLongClickRelease() {
+        // TODO Auto-generated method stub
+        
+    }
+
     /**
      * Set the mode options toggle clickable.
      */
@@ -1517,12 +1716,14 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
     }
 
     public void setDisableAllUserInteractions(boolean disable) {
+        Log.i(TAG, "setDisableAllUserInteractions = " + disable);
         if (disable) {
             disableModeOptions();
             setShutterButtonEnabled(false);
             setSwipeEnabled(false);
             mModeListView.hideAnimated();
         } else {
+            mDisableAllUserInteractions = disable;
             enableModeOptions();
             setShutterButtonEnabled(true);
             setSwipeEnabled(true);
@@ -1540,6 +1741,10 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         }
     }
 
+    public void hideModeListView() {
+        mModeListView.hideAnimated();
+    }
+
     /**
      * Gets called when a mode is selected from {@link com.android.camera.ui.ModeListView}
      *
@@ -1547,13 +1752,18 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
      */
     @Override
     public void onModeSelected(int modeIndex) {
+        mModeSelecting = true;
         mHideCoverRunnable = new Runnable() {
             @Override
             public void run() {
+                mModeSelecting = false;
                 mModeListView.startModeSelectionAnimation();
             }
         };
+        mColorButton.setAlpha(ShutterButton.ALPHA_WHEN_ENABLED);
+        mSceneButton.setAlpha(ShutterButton.ALPHA_WHEN_ENABLED);
         mShutterButton.setAlpha(ShutterButton.ALPHA_WHEN_ENABLED);
+        mShutterButtonIcon.setAlpha(ShutterButton.ALPHA_WHEN_ENABLED);
         mModeCoverState = COVER_SHOWN;
 
         int lastIndex = mController.getCurrentModuleIndex();
@@ -1782,7 +1992,9 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
             @Override
             public void onStateChanged(int state) {
                 if (!mController.isPaused()) {
-                    if (Keys.areGridLinesOn(mController.getSettingsManager())) {
+                    SettingsManager sm = mController.getSettingsManager();
+                    if (sm == null) return;
+                    if (Keys.areGridLinesOn(sm)) {
                         showGridLines();
                     } else {
                         hideGridLines();
@@ -1790,6 +2002,42 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
                 }
             }
         };
+    }
+
+    /****************************Zsl api ******************************/
+    public ButtonManager.ButtonCallback getZslCallback() {
+        return new ButtonManager.ButtonCallback() {
+            @Override
+            public void onStateChanged(int state) {
+                SettingsManager sm = mController.getSettingsManager();
+                if (sm == null) return;
+                if (sm.getBoolean(SettingsManager.SCOPE_GLOBAL, Keys.KEY_BURST_CAPTURE_ON)) {
+                    
+                } else {
+                    
+                }
+            }
+        };
+    }
+
+    /****************************Smile Shutter api ******************************/
+    public ButtonManager.ButtonCallback getSmileShutterCallback() {
+        return new ButtonManager.ButtonCallback() {
+            @Override
+            public void onStateChanged(int state) {
+                SettingsManager sm = mController.getSettingsManager();
+                if (sm == null) return;
+                if (sm.getBoolean(SettingsManager.SCOPE_GLOBAL, Keys.KEY_SMILE_SHUTTER_ON)) {
+                    
+                } else {
+                    
+                }
+            }
+        };
+    }
+
+    public void smileShutterAnimator(boolean on) {
+        mIndicatorIconController.smileShutterAnimator(on);
     }
 
     /***************************Mode options api *****************************/
@@ -1889,12 +2137,28 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         mBottomBar.animateToFullSize(shutterIconId);
     }
 
+    public void performShutterButtonClick() {
+        mShutterButton.performClick();
+    }
+
     public void setShutterButtonEnabled(final boolean enabled) {
         if (!mDisableAllUserInteractions) {
             mBottomBar.post(new Runnable() {
                 @Override
                 public void run() {
                     mBottomBar.setShutterButtonEnabled(enabled);
+                }
+            });
+        }
+    }
+
+    public void setShutterButtonLongClickEnabled(final boolean enabled) {
+        if (!mDisableAllUserInteractions) {
+            mBottomBar.post(new Runnable() {
+
+                @Override
+                public void run() {
+                    mBottomBar.setShutterButtonLongClickEnabled(enabled);
                 }
             });
         }
@@ -2001,7 +2265,7 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
     public void onSettingChanged(SettingsManager settingsManager, String key) {
         // Update the mode options based on the hardware spec,
         // when hdr changes to prevent flash from getting out of sync.
-        if (key.equals(Keys.KEY_CAMERA_HDR)) {
+        if (key.equals(Keys.KEY_CAMERA_HDR) || key.equals(Keys.KEY_BURST_CAPTURE_ON)) {
             ModuleController moduleController = mController.getCurrentModuleController();
             applyModuleSpecs(moduleController.getHardwareSpec(),
                              moduleController.getBottomBarSpec(),
@@ -2103,7 +2367,8 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
                 }
             }
 
-            if (bottomBarSpec.hideHdr || mIsCaptureIntent) {
+            if (bottomBarSpec.hideHdr// || mIsCaptureIntent
+                || DebugPropertyHelper.ONLY_ZSL_MODE.equals(DebugPropertyHelper.getCaptureMode())) {
                 // Force hide hdr or hdr plus icon.
                 buttonManager.hideButton(ButtonManager.BUTTON_HDR_PLUS);
             } else {
@@ -2177,7 +2442,85 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
             buttonManager.initializePanoOrientationButtons(bottomBarSpec.panoOrientationCallback);
         }
 
+        boolean enableSaturation = bottomBarSpec.enableSaturation 
+                && bottomBarSpec.supportedSaturations != null
+                && bottomBarSpec.supportedSaturations.size() > 0;
+        if (enableSaturation) {
+            buttonManager.showModeOptions(R.id.mode_options_saturation);
+            buttonManager.setSaturationParameters(bottomBarSpec.supportedSaturations);
+            buttonManager.setSaturationCallBack(
+                    bottomBarSpec.saturationSetCallback);
+            buttonManager.updateSaturationButtons();
+        } else {
+            buttonManager.hideModeOptions(R.id.mode_options_saturation);
+            buttonManager.setSaturationCallBack(null);
+        }
 
+        boolean enableContrast = bottomBarSpec.enableContrast
+                && bottomBarSpec.supportedContrasts != null
+                && bottomBarSpec.supportedContrasts.size() > 0;
+        if (enableContrast) {
+            buttonManager.showModeOptions(R.id.mode_options_contrast);
+            buttonManager.setContrastParameters(bottomBarSpec.supportedContrasts);
+            buttonManager.setContrastCallBack(
+                    bottomBarSpec.contrastSetCallback);
+            buttonManager.updateContrastButtons();
+        } else {
+            buttonManager.hideModeOptions(R.id.mode_options_contrast);
+            buttonManager.setContrastCallBack(null);
+        }
+
+        boolean enableSharpness = bottomBarSpec.enableSharpness 
+                  && bottomBarSpec.supportedSharpnesses != null
+                 && bottomBarSpec.supportedSharpnesses.size() > 0;
+         if (enableSharpness) {
+             buttonManager.showModeOptions(R.id.mode_options_sharpness);
+            buttonManager.setSharpnessParameters(bottomBarSpec.supportedSharpnesses);
+            buttonManager.setSharpnessCallBack(
+                    bottomBarSpec.sharpnessSetCallback);
+            buttonManager.updateSharpnessButtons();
+        } else {
+            buttonManager.hideModeOptions(R.id.mode_options_sharpness);
+            buttonManager.setSharpnessCallBack(null);
+        }
+
+        boolean enableBrightness = bottomBarSpec.enableBrightness 
+                && bottomBarSpec.supportedBrightnesses != null
+                && bottomBarSpec.supportedBrightnesses.size() > 0;
+        if (enableBrightness) {
+            buttonManager.showModeOptions(R.id.mode_options_brightness);
+            buttonManager.setBrightnessParameters(bottomBarSpec.supportedBrightnesses);
+            buttonManager.setBrightnessCallBack(
+                    bottomBarSpec.brightnessSetCallback);
+            buttonManager.updateBrightnessButtons();
+        } else {
+            buttonManager.hideModeOptions(R.id.mode_options_brightness);
+            buttonManager.setBrightnessCallBack(null);
+        }
+
+        boolean enableHue = bottomBarSpec.enableHue 
+                && bottomBarSpec.supportedHues != null
+                && bottomBarSpec.supportedHues.size() > 0;
+        if (enableHue) {
+            buttonManager.showModeOptions(R.id.mode_options_hue);
+            buttonManager.setHueParameters(bottomBarSpec.supportedHues);
+            buttonManager.setHueCallBack(
+                    bottomBarSpec.hueSetCallback);
+            buttonManager.updateHueButtons();
+        } else {
+            buttonManager.hideModeOptions(R.id.mode_options_hue);
+            buttonManager.setHueCallBack(null);
+        }
+
+        boolean enableScreenEffectOptions;
+        if (enableSaturation || enableContrast || enableSharpness
+                || enableBrightness || enableHue) {
+            buttonManager.setScreenEffectOptionsEnabled(true);
+            enableScreenEffectOptions = true;
+        } else {
+            buttonManager.setScreenEffectOptionsEnabled(false);
+            enableScreenEffectOptions = false;
+        }
 
         // If manual exposure is enabled both in SettingsManager and
         // BottomBarSpec,then show the exposure button.
@@ -2185,32 +2528,138 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         // enabled), but the device/module has the feature, then disable the exposure
         // button.
         // Otherwise, hide the button.
-        if (bottomBarSpec.enableExposureCompensation
-                && !(bottomBarSpec.minExposureCompensation == 0 && bottomBarSpec.maxExposureCompensation == 0)
-                && mController.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL,
-                        Keys.KEY_EXPOSURE_COMPENSATION_ENABLED)) {
-            buttonManager.initializePushButton(ButtonManager.BUTTON_EXPOSURE_COMPENSATION,
-                    new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            mModeOptionsOverlay.showExposureOptions();
-                        }
-                    });
-            buttonManager.setExposureCompensationParameters(
+        boolean enableExposureCompensation = bottomBarSpec.enableExposureCompensation &&
+            !(bottomBarSpec.minExposureCompensation == 0 && bottomBarSpec.maxExposureCompensation == 0) &&
+            mController.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL,
+                        Keys.KEY_EXPOSURE_COMPENSATION_ENABLED);
+
+        if (enableScreenEffectOptions) {
+            if (mController.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL,
+                        Keys.KEY_EXPOSURE_COMPENSATION_ENABLED))
+                buttonManager.initializePushButton(ButtonManager.BUTTON_EXPOSURE_COMPENSATION, null);
+            else
+                buttonManager.hideButton(ButtonManager.BUTTON_EXPOSURE_COMPENSATION);
+            if (enableExposureCompensation) {
+                buttonManager.showModeOptions(R.id.mode_options_exposure_of_screen);
+                buttonManager.setExposureCompensationOfScreenParameters(
+                        bottomBarSpec.minExposureCompensation,
+                        bottomBarSpec.maxExposureCompensation,
+                        bottomBarSpec.exposureCompensationStep);
+                buttonManager.setExposureCompensationOfScreenCallback(
+                        bottomBarSpec.exposureCompensationSetCallback);
+                buttonManager.updateExposureButtonsOfScreen();
+            } else {
+                buttonManager.hideModeOptions(R.id.mode_options_exposure_of_screen);
+                buttonManager.setExposureCompensationOfScreenCallback(null);
+            }
+        } else {        
+            if (enableExposureCompensation) {
+                buttonManager.initializePushButton(ButtonManager.BUTTON_EXPOSURE_COMPENSATION, null);
+                buttonManager.setExposureCompensationParameters(
                     bottomBarSpec.minExposureCompensation,
                     bottomBarSpec.maxExposureCompensation,
                     bottomBarSpec.exposureCompensationStep);
 
-            buttonManager.setExposureCompensationCallback(
-                    bottomBarSpec.exposureCompensationSetCallback);
-            buttonManager.updateExposureButtons();
-        } else if (mController.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL,
-                Keys.KEY_EXPOSURE_COMPENSATION_ENABLED)
-                && bottomBarSpec.isExposureCompensationSupported) {
-            buttonManager.disableButton(ButtonManager.BUTTON_EXPOSURE_COMPENSATION);
+                buttonManager.setExposureCompensationCallback(
+                        bottomBarSpec.exposureCompensationSetCallback);
+                buttonManager.updateExposureButtons();
+            } else {
+                buttonManager.hideButton(ButtonManager.BUTTON_EXPOSURE_COMPENSATION);
+                buttonManager.setExposureCompensationCallback(null);
+            }
+        }
+
+        boolean enableWhiteBalance = bottomBarSpec.enableWhiteBalance &&
+                bottomBarSpec.supportedWhiteBalances.size() != 0 &&
+                mController.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL,
+                            Keys.KEY_WHITEBALANCE_ENABLED);
+        if (enableWhiteBalance) {
+            buttonManager.initializePushButton(ButtonManager.BUTTON_WHITEBALANCE, null);
+            buttonManager.setWhiteBalanceParameters(bottomBarSpec.supportedWhiteBalances);
+
+            buttonManager.setWhiteBalanceCallback(
+                    bottomBarSpec.whiteBalanceSetCallback);
+            buttonManager.updateWhiteBalanceButtons();
         } else {
-            buttonManager.hideButton(ButtonManager.BUTTON_EXPOSURE_COMPENSATION);
-            buttonManager.setExposureCompensationCallback(null);
+            if (!bottomBarSpec.enableWhiteBalance
+                    && mController.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL,
+                            Keys.KEY_WHITEBALANCE_ENABLED)) {
+                buttonManager.initializePushButton(ButtonManager.BUTTON_WHITEBALANCE, null);
+                buttonManager.setWhiteBalanceParameters(bottomBarSpec.supportedWhiteBalances);
+
+                buttonManager.setWhiteBalanceCallback(
+                        bottomBarSpec.whiteBalanceSetCallback);
+                buttonManager.updateWhiteBalanceButtons();
+                buttonManager.disableButton(ButtonManager.BUTTON_WHITEBALANCE);
+            } else {
+                buttonManager.hideButton(ButtonManager.BUTTON_WHITEBALANCE);
+                buttonManager.setWhiteBalanceCallback(null);
+            }
+        }
+
+        boolean enableScene = bottomBarSpec.enableScene &&
+                bottomBarSpec.supportedSceneModes.size() != 0;
+        if (enableScene) {
+            buttonManager.initializePushButton(ButtonManager.BUTTON_SCENE, null);
+            buttonManager.setSceneParameters(bottomBarSpec.supportedSceneModes);
+
+            buttonManager.setSceneCallBack(
+                    bottomBarSpec.sceneSetCallback);
+            buttonManager.updateSceneButtons();
+        } else {
+            buttonManager.hideButton(ButtonManager.BUTTON_SCENE);
+            buttonManager.setSceneCallBack(null);
+            if (bottomBarSpec.sceneSetCallback != null)
+                bottomBarSpec.sceneSetCallback.setScene(Camera.Parameters.SCENE_MODE_AUTO);
+        }
+
+        boolean enableColorEffect = bottomBarSpec.enableColorEffect &&
+                bottomBarSpec.supportedColorEffects.size() > 1;
+        if (enableColorEffect) {
+            buttonManager.initializePushButton(ButtonManager.BUTTON_COLOR, null);
+            buttonManager.setColorEffectParameters(bottomBarSpec.supportedColorEffects);
+
+            buttonManager.setColorEffectCallBack(
+                    bottomBarSpec.colorEffectSetCallback);
+            buttonManager.updateColorEffectButtons();
+        } else {
+            buttonManager.hideButton(ButtonManager.BUTTON_COLOR);
+            buttonManager.setColorEffectCallBack(null);
+        }
+        /*if (!buttonManager.isVisible(ButtonManager.BUTTON_SCENE) 
+                && buttonManager.isVisible(ButtonManager.BUTTON_COLOR)) {
+            buttonManager.disableButton(ButtonManager.BUTTON_SCENE);
+        } else if (buttonManager.isVisible(ButtonManager.BUTTON_SCENE) 
+                && !buttonManager.isVisible(ButtonManager.BUTTON_COLOR)) {
+            buttonManager.disableButton(ButtonManager.BUTTON_COLOR);
+        }*/
+
+        int modeIndex = mController.getCurrentModuleIndex();
+        if (modeIndex == 
+                mController.getAndroidContext().getResources()
+                    .getInteger(R.integer.camera_mode_photo)
+                    && DebugPropertyHelper.ZSL_NORMAL_MODE.equals(DebugPropertyHelper.getCaptureMode())) {
+            if (bottomBarSpec.enableZsl) {
+                buttonManager.initializeButton(ButtonManager.BUTTON_ZSL,
+                        bottomBarSpec.zslCallback != null ?
+                                bottomBarSpec.zslCallback : getZslCallback()
+                );
+            } else {
+                buttonManager.hideButton(ButtonManager.BUTTON_ZSL);
+            }
+        } else {
+            buttonManager.hideButton(ButtonManager.BUTTON_ZSL);
+        }
+
+        if (bottomBarSpec.enableSmileShutter
+                && mController.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL,
+                        Keys.KEY_FACE_DETECTION_ENABLED)) {
+            buttonManager.initializeButton(ButtonManager.BUTTON_SMILE_SHUTTER,
+                    bottomBarSpec.smileShutterCallback != null ?
+                            bottomBarSpec.smileShutterCallback : getSmileShutterCallback()
+            );
+        } else {
+            buttonManager.hideButton(ButtonManager.BUTTON_SMILE_SHUTTER);
         }
 
         /** Intent UI */
@@ -2293,4 +2742,119 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
     public int getFilmstripVisibility() {
         return mFilmstripLayout.getVisibility();
     }
+
+    public void updateUIByOrientation() {
+        updateModeListViewByOrientation();
+        updateFilmStripViewByOrientation();
+        mModeTransitionView.setRotation(CameraUtil.mUIRotated);
+        mColorButton.setRotation(CameraUtil.mUIRotated);
+        mSceneButton.setRotation(CameraUtil.mUIRotated);
+        mRoundedThumbnailView.setRotation(CameraUtil.mUIRotated);
+
+        mColorModeOptions.updateUIByOrientation();
+        mSceneModeOptions.updateUIByOrientation();
+
+        mModeOptionsOverlay.updateUIByOrientation();
+        mBottomBar.updateUIByOrientation();
+
+        mIndicatorIconController.updateUIByOrientation();
+        updatePeekViewByOrientation();
+    }
+
+    private void updatePeekViewByOrientation() {
+        RectF previewArea = mTextureViewHelper.getPreviewArea();
+        /*if (CameraUtil.mIsPortrait) {
+            mPeekView.setTranslationX(previewArea.right - mAppRootView.getRight());
+            mPeekView.setTranslationY(0);
+        } else {
+            float translateY = 0;
+            if (CameraUtil.mScreenOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE)
+                translateY = previewArea.bottom - (mPeekView.getTop()
+                    + mPeekView.getHeight() / 2 + mPeekView.getWidth() / 2);
+            else
+                translateY = previewArea.top - (mPeekView.getTop()
+                        + mPeekView.getHeight() / 2 - mPeekView.getWidth() / 2);
+            mPeekView.setTranslationX(previewArea.right - mAppRootView.getRight());
+            mPeekView.setTranslationY(translateY);
+        }
+        mPeekView.setRotation(CameraUtil.mUIRotated);*/
+    }
+
+    private void updateModeListViewByOrientation() {
+        int rootViewWidth = mAppRootView.getWidth();
+        int rootViewHeight = mAppRootView.getHeight();
+        if (rootViewWidth > rootViewHeight) {
+            int tmp = rootViewWidth;
+            rootViewWidth = rootViewHeight;
+            rootViewHeight = tmp;
+        }
+        if (CameraUtil.mIsPortrait) {
+            mModeListView.measure(MeasureSpec.makeMeasureSpec(rootViewWidth, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(rootViewHeight, MeasureSpec.EXACTLY));
+            mModeListView.layout(0, 0, rootViewWidth, rootViewHeight);
+            mModeListView.setTranslationX(0);
+            mModeListView.setTranslationY(0);
+        } else {
+            if (rootViewWidth < rootViewHeight) {
+                int tmp = rootViewWidth;
+                rootViewWidth = rootViewHeight;
+                rootViewHeight = tmp;
+            }
+            mModeListView.measure(MeasureSpec.makeMeasureSpec(rootViewHeight, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(rootViewWidth, MeasureSpec.EXACTLY));
+            mModeListView.layout(0, 0, rootViewHeight, rootViewWidth);
+            mModeListView.setTranslationX((rootViewWidth - rootViewHeight) / 2.0f);
+            mModeListView.setTranslationY((rootViewHeight - rootViewWidth) / 2.0f);
+        }
+        mModeListView.setRotation(CameraUtil.mUIRotated);
+    }
+
+    private void updateFilmStripViewByOrientation() {
+        int rootViewWidth = mAppRootView.getWidth();
+        int rootViewHeight = mAppRootView.getHeight();
+        if (rootViewWidth > rootViewHeight) {
+            int tmp = rootViewWidth;
+            rootViewWidth = rootViewHeight;
+            rootViewHeight = tmp;
+        }
+        if (CameraUtil.mIsPortrait) {
+            mFilmstripLayout.measure(MeasureSpec.makeMeasureSpec(rootViewWidth, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(rootViewHeight, MeasureSpec.EXACTLY));
+            mFilmstripLayout.layout(0, 0, rootViewWidth, rootViewHeight);
+            mFilmstripLayout.setTranslationX(0);
+            mFilmstripLayout.setTranslationY(0);
+        } else {
+            mFilmstripLayout.measure(MeasureSpec.makeMeasureSpec(rootViewHeight, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(rootViewWidth, MeasureSpec.EXACTLY));
+            mFilmstripLayout.layout(0, 0, rootViewHeight, rootViewWidth);
+            mFilmstripLayout.setTranslationX((rootViewWidth - rootViewHeight) / 2.0f);
+            mFilmstripLayout.setTranslationY((rootViewHeight - rootViewWidth) / 2.0f);
+        }
+        mFilmstripLayout.setRotation(CameraUtil.mUIRotated);
+        mFilmstripLayout.requestLayout();
+        LinearLayout filmStripBottomControl = (LinearLayout) mFilmstripBottomControls.getLayout();
+        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) filmStripBottomControl.getLayoutParams();
+        if (CameraUtil.mScreenOrientation == ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT) {
+            lp.gravity = Gravity.TOP;
+        } else
+            lp.gravity = Gravity.BOTTOM;
+    }
+
+    public void pauseTextViewHelper() {
+        if (mTextureViewHelper != null)
+            mTextureViewHelper.pause();
+    }
+
+    public void checkOrientation() {
+        Resources res = mController.getAndroidContext().getResources();
+        if (mBottomBar != null)
+            mBottomBar.checkOrientation(res.getConfiguration().orientation);
+        if (mModeOptionsOverlay != null)
+            mModeOptionsOverlay.checkOrientation(res.getConfiguration().orientation);
+        if (mSceneModeOptions != null)
+            mSceneModeOptions.checkOrientation(res.getConfiguration().orientation);
+        if (mColorModeOptions != null)
+            mColorModeOptions.checkOrientation(res.getConfiguration().orientation);
+    }
+
 }

@@ -162,7 +162,17 @@ public class CaptureModuleUI implements PreviewStatusListener.PreviewAreaChanged
         Matrix m = new Matrix();
         m = getPreviewTransform(m);
         Bitmap src = mPreviewView.getBitmap();
-        return Bitmap.createBitmap(src, 0, 0, src.getWidth(), src.getHeight(), m, true);
+        try {
+            Bitmap b1 = Bitmap.createBitmap(src, 0, 0, src.getWidth(), src.getHeight(), m, true);
+            if (b1 != src) {
+                src.recycle();
+                src = b1;
+            }
+        } catch (OutOfMemoryError e) {
+            // We have no memory to rotate. Return the original bitmap.
+            System.gc();
+        }
+        return src;//Bitmap.createBitmap(src, 0, 0, src.getWidth(), src.getHeight(), m, true);
     }
 
     /**

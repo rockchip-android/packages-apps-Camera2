@@ -242,6 +242,10 @@ class ModeSelectorItem extends FrameLayout {
         loc[1] += mMinVisibleWidth / 2;
     }
 
+    public int getMinVisibleWidth() {
+        return mMinVisibleWidth;
+    }
+
     /**
      * Sets the mode id of the current item.
      *

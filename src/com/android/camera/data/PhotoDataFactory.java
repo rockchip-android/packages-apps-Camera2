@@ -110,6 +110,8 @@ public class PhotoDataFactory {
             }
             width = b.getWidth();
             height = b.getHeight();
+            b.recycle();
+            b = null;
             if (width == 0 || height == 0) {
                 Log.w(TAG, "PhotoData skipped. Bitmap size 0 for " + filePath);
                 return null;
