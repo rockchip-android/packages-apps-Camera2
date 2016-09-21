@@ -533,7 +533,7 @@ public class FilmstripLayout extends FrameLayout implements FilmstripContentPane
         }
 
         private void setAlpha(float a) {
-            setAlpha((int) (a*255.0f));
+            setAlpha(255);
         }
 
         @Override
