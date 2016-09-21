@@ -3,7 +3,7 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.android.camera2"
-    android:versionName="rk_camera2_v1.0.1">
+    android:versionName="rk_camera2_v1.0.2">
 
     <uses-sdk
         android:minSdkVersion="19"
