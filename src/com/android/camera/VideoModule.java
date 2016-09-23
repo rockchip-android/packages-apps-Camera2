@@ -1961,7 +1961,9 @@ public class VideoModule extends CameraModule
                 mCameraSettings.setFocusMode(CameraCapabilities.FocusMode.CONTINUOUS_VIDEO);
                 mFocusManager.overrideFocusMode(CameraCapabilities.FocusMode.CONTINUOUS_VIDEO);
             } else {
-                mFocusManager.overrideFocusMode(null);
+                mCameraSettings.setFocusMode(CameraCapabilities.FocusMode.FIXED);
+                mFocusManager.overrideFocusMode(CameraCapabilities.FocusMode.FIXED);
+                //mFocusManager.overrideFocusMode(null);
             }
         } else {
             // FIXME(b/16984793): This is broken. For some reasons, CONTINUOUS_PICTURE is not on
