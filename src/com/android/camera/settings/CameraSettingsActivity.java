@@ -309,6 +309,7 @@ public class CameraSettingsActivity extends FragmentActivity {
         }
 
         private void setDefaultPicturesize(CameraId cameraId, Facing cameraFacing) {
+            if (cameraId == null) return;
             final String pictureSizeSettingKey = cameraFacing == OneCamera.Facing.FRONT ?
                     Keys.KEY_PICTURE_SIZE_FRONT : Keys.KEY_PICTURE_SIZE_BACK;
             final Rational aspectRatio = ResolutionUtil.ASPECT_RATIO_4x3;
