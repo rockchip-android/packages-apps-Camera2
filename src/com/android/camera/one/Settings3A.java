@@ -67,7 +67,7 @@ public class Settings3A {
     private static final float REGION_WEIGHT = 0.022f;
 
     /** Duration to hold after manual tap to focus. */
-    private static final int FOCUS_HOLD_MILLIS = 3000;
+    private static final int FOCUS_HOLD_MILLIS = 6000;
 
     /**
      * The number of milliseconds to hold tap-to-expose/metering after the last

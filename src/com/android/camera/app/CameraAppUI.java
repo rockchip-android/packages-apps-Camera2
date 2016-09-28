@@ -2570,7 +2570,7 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         }
 
         boolean enableWhiteBalance = bottomBarSpec.enableWhiteBalance &&
-                bottomBarSpec.supportedWhiteBalances.size() != 0 &&
+                bottomBarSpec.supportedWhiteBalances.size() > 1 &&
                 mController.getSettingsManager().getBoolean(SettingsManager.SCOPE_GLOBAL,
                             Keys.KEY_WHITEBALANCE_ENABLED);
         if (enableWhiteBalance) {
