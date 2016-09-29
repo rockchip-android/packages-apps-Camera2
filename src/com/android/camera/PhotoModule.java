@@ -1866,18 +1866,27 @@ public class PhotoModule
         // capturing by putting device in landscape.)
         if (mOrientation == OrientationEventListener.ORIENTATION_UNKNOWN)
             mOrientation = mDisplayRotation;
+//        Characteristics info = mActivity.getCameraProvider().getCharacteristics(mCameraId);
+//        int sensorOrientation = info.getSensorOrientation();
+//        int deviceOrientation =
+//                mAppController.getOrientationManager().getDeviceOrientation().getDegrees();
+//        boolean isFrontCamera = info.isFacingFront();
+//        mJpegRotation =
+//                CameraUtil.getImageRotation(sensorOrientation, deviceOrientation, isFrontCamera);
+//        mCameraDevice.setJpegOrientation(mJpegRotation);
+//
+//        Log.v(TAG, "capture orientation (screen:device:used:jpeg) " +
+//                mDisplayRotation + ":" + deviceOrientation + ":" +
+//                sensorOrientation + ":" + mJpegRotation);
+
+        int orientation = mActivity.isAutoRotateScreen() ? mDisplayRotation : mOrientation;
         Characteristics info = mActivity.getCameraProvider().getCharacteristics(mCameraId);
-        int sensorOrientation = info.getSensorOrientation();
-        int deviceOrientation =
-                mAppController.getOrientationManager().getDeviceOrientation().getDegrees();
-        boolean isFrontCamera = info.isFacingFront();
-        mJpegRotation =
-                CameraUtil.getImageRotation(sensorOrientation, deviceOrientation, isFrontCamera);
+        mJpegRotation = info.getJpegOrientation(orientation);
         mCameraDevice.setJpegOrientation(mJpegRotation);
 
         Log.v(TAG, "capture orientation (screen:device:used:jpeg) " +
-                mDisplayRotation + ":" + deviceOrientation + ":" +
-                sensorOrientation + ":" + mJpegRotation);
+                mDisplayRotation + ":" + mOrientation + ":" +
+                orientation + ":" + mJpegRotation);
 
         mCameraDevice.takePicture(mHandler,
                 new ShutterCallback(!animateBefore),
@@ -1916,14 +1925,23 @@ public class PhotoModule
         // capturing by putting device in landscape.)
         if (mOrientation == OrientationEventListener.ORIENTATION_UNKNOWN)
             mOrientation = mDisplayRotation;
+//        Characteristics info = mActivity.getCameraProvider().getCharacteristics(mCameraId);
+//        int sensorOrientation = info.getSensorOrientation();
+//        int deviceOrientation =
+//                mAppController.getOrientationManager().getDeviceOrientation().getDegrees();
+//        boolean isFrontCamera = info.isFacingFront();
+//        mJpegRotation =
+//                CameraUtil.getImageRotation(sensorOrientation, deviceOrientation, isFrontCamera);
+//        mCameraDevice.setJpegOrientation(mJpegRotation);
+
+        int orientation = mActivity.isAutoRotateScreen() ? mDisplayRotation : mOrientation;
         Characteristics info = mActivity.getCameraProvider().getCharacteristics(mCameraId);
-        int sensorOrientation = info.getSensorOrientation();
-        int deviceOrientation =
-                mAppController.getOrientationManager().getDeviceOrientation().getDegrees();
-        boolean isFrontCamera = info.isFacingFront();
-        mJpegRotation =
-                CameraUtil.getImageRotation(sensorOrientation, deviceOrientation, isFrontCamera);
+        mJpegRotation = info.getJpegOrientation(orientation);
         mCameraDevice.setJpegOrientation(mJpegRotation);
+
+        Log.v(TAG, "burstcapture orientation (screen:device:used:jpeg) " +
+                mDisplayRotation + ":" + mOrientation + ":" +
+                orientation + ":" + mJpegRotation);
         
         // We don't want user to press the button again while taking a
         // multi-second HDR photo.
