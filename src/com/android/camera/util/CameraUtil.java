@@ -531,7 +531,7 @@ public class CameraUtil {
         // Use a very small tolerance because we want an exact match. HTC 4:3
         // ratios is over .01 from true 4:3, so this value must be above .01,
         // see b/18241645.
-        final double aspectRatioTolerance = 0.02;
+        final double aspectRatioTolerance = 0.03;
 
         return getOptimalPreviewSizeIndex(sizes, targetRatio, aspectRatioTolerance);
     }
