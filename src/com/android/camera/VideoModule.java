@@ -832,7 +832,7 @@ public class VideoModule extends CameraModule
                 // back to use SurfaceTexture for preview and we need to stop then start
                 // the preview. This will cause the preview flicker since the preview
                 // will not be continuous for a short period of time.
-                mAppController.startFlashAnimation(false);
+                //mAppController.startFlashAnimation(false);
             }
         }
     }
