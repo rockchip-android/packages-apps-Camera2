@@ -64,6 +64,7 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
     public static final int BUTTON_COLOR = 15;
     public static final int BUTTON_ZSL = 16;
     public static final int BUTTON_SMILE_SHUTTER = 17;
+    public static final int BUTTON_3DNR = 18;
 
     /** For two state MultiToggleImageButtons, the off index. */
     public static final int OFF = 0;
@@ -83,6 +84,7 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
     private MultiToggleImageButton mButtonCountdown;
     private MultiToggleImageButton mButtonZsl;
     private MultiToggleImageButton mButtonSmileShutter;
+    private MultiToggleImageButton mButton3dnr;
 
     /** Intent UI buttons. */
     private ImageButton mButtonCancel;
@@ -256,6 +258,8 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
             = (MultiToggleImageButton) root.findViewById(R.id.zsl_toggle_button);
         mButtonSmileShutter
             = (MultiToggleImageButton) root.findViewById(R.id.smile_shutter_toggle_button);
+        mButton3dnr
+            = (MultiToggleImageButton) root.findViewById(R.id.threednr_toggle_button);
 
         mButtonExposureCompensation =
             (ImageButton) root.findViewById(R.id.exposure_button);
@@ -394,6 +398,10 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
             updateBrightnessButtons();
         } else if (key.equals(Keys.KEY_HUE)) {
             updateHueButtons();
+        } else if (key.equals(Keys.KEY_3DNR_ON)) {
+            index = mSettingsManager.getIndexOfCurrentValue(SettingsManager.SCOPE_GLOBAL,
+                    Keys.KEY_3DNR_ON);
+            button = getButtonOrError(BUTTON_3DNR);
         }
 
         if (button != null && button.getState() != index) {
@@ -468,6 +476,11 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
                     throw new IllegalStateException("Smile Shutter button could not be found.");
                 }
                 return mButtonSmileShutter;
+            case BUTTON_3DNR:
+                if (mButton3dnr == null) {
+                    throw new IllegalAccessError("3dnr button could not be found.");
+                }
+                return mButton3dnr;
             default:
                 throw new IllegalArgumentException("button not known by id=" + buttonId);
         }
@@ -577,6 +590,9 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
             case BUTTON_SMILE_SHUTTER:
                 initializeSmileShutterButton(button, cb, R.array.smile_shutter_icons);
                 break;
+            case BUTTON_3DNR:
+                initialize3dnrButton(button, cb, R.array.threednr_icons);
+				break;
             default:
                 throw new IllegalArgumentException("button not known by id=" + buttonId);
         }
@@ -1647,6 +1663,30 @@ public class ButtonManager implements SettingsManager.OnSettingChangedListener {
 
         int index = mSettingsManager.getIndexOfCurrentValue(SettingsManager.SCOPE_GLOBAL,
                                                             Keys.KEY_SMILE_SHUTTER_ON);
+        button.setState(index >= 0 ? index : 0, true);
+    }
+
+    private void initialize3dnrButton(MultiToggleImageButton button,
+            final ButtonCallback cb, int resIdImages) {
+
+        if (resIdImages > 0) {
+            button.overrideImageIds(resIdImages);
+        }
+        button.overrideContentDescriptions(R.array.threednr_descriptions);
+
+        button.setOnStateChangeListener(new MultiToggleImageButton.OnStateChangeListener() {
+            @Override
+            public void stateChanged(View view, int state) {
+                mSettingsManager.setValueByIndex(SettingsManager.SCOPE_GLOBAL,
+                                                 Keys.KEY_3DNR_ON, state);
+                if (cb != null) {
+                    cb.onStateChanged(state);
+                }
+            }
+        });
+
+        int index = mSettingsManager.getIndexOfCurrentValue(SettingsManager.SCOPE_GLOBAL,
+                                                            Keys.KEY_3DNR_ON);
         button.setState(index >= 0 ? index : 0, true);
     }
 

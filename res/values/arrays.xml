@@ -593,6 +593,21 @@
       <item>@string/smile_shutter_on_desc</item>
     </array>
 
+    <array name="threednr_icons" translatable="false">
+      <item>@drawable/ic_3dnr_off</item>
+      <item>@drawable/ic_3dnr_on</item>
+    </array>
+
+    <array name="threednr_indicator_icons" translatable="false">
+      <item>@android:color/transparent</item>
+      <item>@drawable/ic_3dnr_on_indicator</item>
+    </array>
+
+    <array name="threednr_descriptions" translatable="false">
+      <item>@string/ic_3dnr_off_desc</item>
+      <item>@string/ic_3dnr_on_desc</item>
+    </array>
+
     <string-array name="pref_camera_saturation_entry" translatable="false">
         <item>normal</item>
         <item>low</item>

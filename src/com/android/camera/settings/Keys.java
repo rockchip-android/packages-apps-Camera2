@@ -94,6 +94,8 @@ public class Keys {
 
     public static final String KEY_BURST_CAPTURE_ON = "pref_burst_capture_on_key";
 
+    public static final String KEY_3DNR_ON = "pref_3dnr_on_key";
+
     public static final String KEY_FACE_DETECTION_ENABLED =
             "pref_face_detection_enabled_key";
     public static final String KEY_SMILE_SHUTTER_ON = "pref_smile_shutter_on_key";
@@ -284,6 +286,8 @@ public class Keys {
             settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
                                          Keys.KEY_MEDIA_SAVE_PATH);
         }
+
+        settingsManager.setDefaults(KEY_3DNR_ON, false);
     }
 
     /**
@@ -434,6 +438,10 @@ public class Keys {
         if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_MEDIA_SAVE_PATH))
             settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
                     KEY_MEDIA_SAVE_PATH);
+
+        if (settingsManager.isSet(SettingsManager.SCOPE_GLOBAL, KEY_3DNR_ON))
+            settingsManager.setToDefault(SettingsManager.SCOPE_GLOBAL,
+                    KEY_3DNR_ON);
     }
 
     /** Helper functions for some defined keys. */

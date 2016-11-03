@@ -168,6 +168,11 @@
             style="@style/ModeOption"
             camera:imageIds="@array/smile_shutter_icons"
             camera:contentDescriptionIds="@array/smile_shutter_descriptions" />
+        <com.android.camera.MultiToggleImageButton
+            android:id="@+id/threednr_toggle_button"
+            style="@style/ModeOption"
+            camera:imageIds="@array/threednr_icons"
+            camera:contentDescriptionIds="@array/threednr_descriptions" />
         <ImageButton
             android:id="@+id/exposure_button"
             style="@style/ModeOption"

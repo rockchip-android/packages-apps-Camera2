@@ -549,6 +549,9 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         
         public boolean enableSmileShutter = false;
         public ButtonManager.ButtonCallback smileShutterCallback;
+    
+        public boolean enable3dnr = false;
+        public ButtonManager.ButtonCallback threednrCallback;
     }
 
 
@@ -2036,6 +2039,22 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         };
     }
 
+    /****************************3dnr api ******************************/
+    public ButtonManager.ButtonCallback get3dnrCallback() {
+        return new ButtonManager.ButtonCallback() {
+            @Override
+            public void onStateChanged(int state) {
+                SettingsManager sm = mController.getSettingsManager();
+                if (sm == null) return;
+                if (sm.getBoolean(SettingsManager.SCOPE_GLOBAL, Keys.KEY_3DNR_ON)) {
+                    
+                } else {
+                    
+                }
+            }
+        };
+    }
+
     public void smileShutterAnimator(boolean on) {
         mIndicatorIconController.smileShutterAnimator(on);
     }
@@ -2649,6 +2668,21 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
             }
         } else {
             buttonManager.hideButton(ButtonManager.BUTTON_ZSL);
+        }
+
+        if (modeIndex == 
+                mController.getAndroidContext().getResources()
+                    .getInteger(R.integer.camera_mode_photo)) {
+            if (bottomBarSpec.enable3dnr) {
+                buttonManager.initializeButton(ButtonManager.BUTTON_3DNR,
+                        bottomBarSpec.threednrCallback != null ?
+                                bottomBarSpec.threednrCallback : get3dnrCallback()
+                );
+            } else {
+                buttonManager.hideButton(ButtonManager.BUTTON_3DNR);
+            }
+        } else {
+            buttonManager.hideButton(ButtonManager.BUTTON_3DNR);
         }
 
         if (bottomBarSpec.enableSmileShutter

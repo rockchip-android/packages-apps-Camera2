@@ -996,6 +996,10 @@
     <string name="smile_shutter_off_desc">Smile Shutter off</string>
     <string name="smile_shutter_on_desc">Smile Shutter on</string>
 
+    <!-- Accessibility text for 3dnr toggle button states [CHAR_LIMIT=NONE] -->
+    <string name="ic_3dnr_off_desc">3DNR off</string>
+    <string name="ic_3dnr_on_desc">3DNR on</string>
+
     <string name="exposure_options_lable">Exposure</string>
     <string name="saturation_options_lable">Saturation</string>
     <string name="contrast_options_lable">Contrast</string>

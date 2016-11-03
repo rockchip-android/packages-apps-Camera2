@@ -59,6 +59,7 @@ public class IndicatorIconController
     private ImageView mCountdownTimerIndicator;
     private ImageView mZslIndicator;
     private ImageView mSmileShutterIndicator;
+    private ImageView m3dnrIndicator;
 
     private ImageView mExposureIndicatorN2;
     private ImageView mExposureIndicatorN1;
@@ -80,6 +81,7 @@ public class IndicatorIconController
     private TypedArray mCountdownTimerIndicatorIcons;
     private TypedArray mZslIndicatorIcons;
     private TypedArray mSmileShutterIndicatorIcons;
+    private TypedArray m3dnrIndicatorIcons;
 
     private AppController mController;
     
@@ -122,6 +124,10 @@ public class IndicatorIconController
         mSmileShutterIndicator = (ImageView) root.findViewById(R.id.smile_shutter_indicator);
         mSmileShutterIndicatorIcons = context.getResources().obtainTypedArray(
                 R.array.smile_shutter_indicator_icons);
+
+        m3dnrIndicator = (ImageView) root.findViewById(R.id.threednr_indicator);
+        m3dnrIndicatorIcons = context.getResources().obtainTypedArray(
+                R.array.threednr_indicator_icons);
 
         mExposureIndicatorN2 = (ImageView) root.findViewById(R.id.exposure_n2_indicator);
         mExposureIndicatorN1 = (ImageView) root.findViewById(R.id.exposure_n1_indicator);
@@ -198,6 +204,7 @@ public class IndicatorIconController
         syncZslIndicator();
         syncSmileShutterIndicator();
         syncWhiteBalanceIndicator();
+        sync3dnrIndicator();
     }
 
     /**
@@ -396,6 +403,24 @@ public class IndicatorIconController
         }
     }
 
+    private void sync3dnrIndicator() {
+        ButtonManager buttonManager = mController.getButtonManager();
+
+        if (buttonManager.isEnabled(ButtonManager.BUTTON_3DNR)
+            && buttonManager.isVisible(ButtonManager.BUTTON_3DNR)) {
+            setIndicatorState(SettingsManager.SCOPE_GLOBAL,
+                              Keys.KEY_3DNR_ON, m3dnrIndicator,
+                              m3dnrIndicatorIcons, false);
+            SettingsManager settingsManager = mController.getSettingsManager();
+            if (settingsManager.getBoolean(SettingsManager.SCOPE_GLOBAL, Keys.KEY_3DNR_ON))
+                changeVisibility(m3dnrIndicator, View.VISIBLE);
+            else
+                changeVisibility(m3dnrIndicator, View.GONE);
+        } else {
+            changeVisibility(m3dnrIndicator, View.GONE);
+        }
+    }
+
     private void syncSmileShutterIndicator() {
         ButtonManager buttonManager = mController.getButtonManager();
 
@@ -526,6 +551,10 @@ public class IndicatorIconController
         }
         if (key.equals(Keys.KEY_WHITEBALANCE)) {
             syncWhiteBalanceIndicator();
+            return;
+        }
+        if (key.equals(Keys.KEY_3DNR_ON)) {
+            sync3dnrIndicator();
             return;
         }
     }

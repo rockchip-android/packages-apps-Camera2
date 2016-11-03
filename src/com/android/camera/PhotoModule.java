@@ -773,6 +773,7 @@ public class PhotoModule
         bottomBarSpec.enableGridLines = true;
         bottomBarSpec.enableZsl = false;//!mAppController.getSettingsManager()
                 //.getBoolean(SettingsManager.SCOPE_GLOBAL, Keys.KEY_CAMERA_HDR);
+        bottomBarSpec.enable3dnr = true;
         if (mCameraCapabilities != null) {
             bottomBarSpec.enableSmileShutter = (mCameraCapabilities.getMaxNumOfFacesSupported() > 0);
             bottomBarSpec.enableExposureCompensation = true;
@@ -3029,6 +3030,17 @@ public class PhotoModule
             }
         }
 
+        if (key.equals(Keys.KEY_3DNR_ON)) {
+            if (settingsManager.getBoolean(SettingsManager.SCOPE_GLOBAL,
+                    Keys.KEY_3DNR_ON)) {
+                if (mCameraSettings != null)
+                    mCameraSettings.set3dnrEnabled(true);
+            } else {
+                if (mCameraSettings != null)
+                    mCameraSettings.set3dnrEnabled(false);
+            }
+        }
+
         if (key.equals(Keys.KEY_BURST_CAPTURE_ON)) {
             boolean settingsFirstRun = !settingsManager.isSet(SettingsManager.SCOPE_GLOBAL,
                     Keys.KEY_SETTINGS_FIRST_RUN);
@@ -3136,6 +3148,8 @@ public class PhotoModule
         updateParametersSharpness();
         updateParametersBrightness();
         updateParametersHue();
+
+        update3dnrState();
 
         // Set the scene mode: also sets flash and white balance.
         updateParametersSceneMode();
@@ -3311,6 +3325,18 @@ public class PhotoModule
             startSmileShutter();
         } else {
             stopSmileShutter();
+        }
+    }
+
+    private void update3dnrState() {
+        Log.i(TAG,"update3dnrState");
+        SettingsManager settingsManager = mActivity.getSettingsManager();
+        boolean on = settingsManager.getBoolean(SettingsManager.SCOPE_GLOBAL,
+                Keys.KEY_3DNR_ON);
+        if (on) {
+            mCameraSettings.set3dnrEnabled(true);
+        } else {
+            mCameraSettings.set3dnrEnabled(false);
         }
     }
 

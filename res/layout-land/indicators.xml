@@ -58,6 +58,9 @@
         style="@style/IndicatorIcon"
         android:src="@drawable/ic_exposure_p2_indicator" />
     <ImageView 
+        android:id="@+id/threednr_indicator"
+        style="@style/IndicatorIcon" />
+    <ImageView 
         android:id="@+id/smile_shutter_indicator"
         style="@style/IndicatorIcon" />
     <ImageView 
