@@ -775,7 +775,8 @@ public class PhotoModule
                 //.getBoolean(SettingsManager.SCOPE_GLOBAL, Keys.KEY_CAMERA_HDR);
         bottomBarSpec.enable3dnr = true;
         if (mCameraCapabilities != null) {
-            bottomBarSpec.enableSmileShutter = (mCameraCapabilities.getMaxNumOfFacesSupported() > 0);
+            bottomBarSpec.enableSmileShutter = (mCameraCapabilities.getMaxNumOfFacesSupported() > 0
+                    && DebugPropertyHelper.showCaptureDebugUI());
             bottomBarSpec.enableExposureCompensation = true;
             bottomBarSpec.exposureCompensationSetCallback =
                 new CameraAppUI.BottomBarUISpec.ExposureCompensationSetCallback() {
