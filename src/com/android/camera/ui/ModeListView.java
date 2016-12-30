@@ -69,7 +69,7 @@ public class ModeListView extends FrameLayout
         PreviewStatusListener.PreviewAreaChangedListener {
 
     private static final Log.Tag TAG = new Log.Tag("ModeListView");
-
+    private static final String ModeList_TAG = "ModeListView";
     // Animation Durations
     private static final int DEFAULT_DURATION_MS = 200;
     private static final int FLY_IN_DURATION_MS = 0;
@@ -384,6 +384,7 @@ public class ModeListView extends FrameLayout
          * Snaps open the mode list and go to the fully shown state.
          */
         private void snapOpenAndShow() {
+        	android.util.Log.i(ModeList_TAG, "snapOpenAndShow");
             mShouldBeVisible = true;
             setVisibility(VISIBLE);
 
@@ -1271,6 +1272,14 @@ public class ModeListView extends FrameLayout
     }
 
     /**
+     * 获取Mode List列表
+     * @return
+     */
+    public LinearLayout getListView(){
+    	return mListView;
+    }
+    
+    /**
      * Maps between the UI mode selector index to the actual mode id.
      *
      * @param modeSelectorIndex the index of the UI item
@@ -1796,6 +1805,8 @@ public class ModeListView extends FrameLayout
      * event.
      */
     public boolean onMenuPressed() {
+    	android.util.Log.i(ModeList_TAG, "onMenuPressed");
+    	android.util.Log.i(ModeList_TAG, "onMenuPressed->mCurrentStateManager.getCurrentState():" + mCurrentStateManager.getCurrentState().getClass().getName());
         return mCurrentStateManager.getCurrentState().onMenuPressed();
     }
 

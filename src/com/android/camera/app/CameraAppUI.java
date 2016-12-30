@@ -1156,6 +1156,7 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
      * adapts the rest of the UI.
      */
     public void openModeList() {
+    	android.util.Log.i(CameraAppUI.class.getSimpleName(), "openModeList");
         mModeOptionsOverlay.closeModeOptions();
         mModeListView.onMenuPressed();
     }

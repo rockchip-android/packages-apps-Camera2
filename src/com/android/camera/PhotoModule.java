@@ -117,7 +117,7 @@ public class PhotoModule
 
     private static final Log.Tag TAG = new Log.Tag("PhotoModule");
     private final boolean DEBUG = true;//DebugPropertyHelper.isDebugOn();
-
+    private static final String PHOTO_MODULE_TAG = "PhotoModule";
     // We number the request code from 1000 to avoid collision with Gallery.
     private static final int REQUEST_CROP = 1000;
 
@@ -2228,7 +2228,7 @@ public class PhotoModule
                 (SettingsManager.SCOPE_GLOBAL, Keys.KEY_SMILE_SHUTTER_ON)
                 && DebugPropertyHelper.isSmileShutterAuto())
             mHandler.removeCallbacks(mDoSmileShutterRunnable);
-
+        android.util.Log.i(PHOTO_MODULE_TAG, "onShutterButtonClick->stackTrace:" + android.util.Log.getStackTraceString(new Throwable()));
         Log.i(TAG,"onShutterButtonClick");
         // Do not take the picture if there is not enough storage.
         if (mActivity.getStorageSpaceBytes() <= Storage.LOW_STORAGE_THRESHOLD_BYTES) {
