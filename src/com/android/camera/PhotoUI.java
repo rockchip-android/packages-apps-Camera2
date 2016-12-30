@@ -320,7 +320,7 @@ public class PhotoUI implements PreviewStatusListener,
         mCountdownView = (CountDownView) mRootView.findViewById(R.id.count_down_view);
         mBurstCountDownView = (BurstCountDownView) mRootView.findViewById(R.id.burst_count_down_view);
         // Show faces if we are in debug mode.
-        if (DebugPropertyHelper.showCaptureDebugUI()) {
+        if (true/*DebugPropertyHelper.showCaptureDebugUI()*/) {
             mFaceView = (FaceView) mRootView.findViewById(R.id.face_view);
         } else {
             mFaceView = null;
