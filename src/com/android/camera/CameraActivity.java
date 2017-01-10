@@ -192,7 +192,7 @@ public class CameraActivity extends QuickActivity
         OrientationManager.OnOrientationChangeListener {
 
     private static final Log.Tag TAG = new Log.Tag("CameraActivity");
-    private static final String CameraTAG = "CameraActivity";
+
     private static final String INTENT_ACTION_STILL_IMAGE_CAMERA_SECURE =
             "android.media.action.STILL_IMAGE_CAMERA_SECURE";
     public static final String ACTION_IMAGE_CAPTURE_SECURE =
@@ -2470,11 +2470,8 @@ public class CameraActivity extends QuickActivity
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (ActivityManager.isUserAMonkey())
             return super.onKeyDown(keyCode, event);
-        android.util.Log.i(CameraTAG, "onKeyDown->mFilmstripVisible:" + mFilmstripVisible);
-        android.util.Log.i(CameraTAG, "onKeyDown->mCurrentModule:" + mCurrentModule.getClass().getName());
         if (!mFilmstripVisible) {
             if (mCurrentModule.onKeyDown(keyCode, event)) {
-            	 android.util.Log.i(CameraTAG, "onKeyDown->mCurrentModule->onKeyDown->true");
                 return true;
             }
             // Prevent software keyboard or voice search from showing up.
@@ -2493,13 +2490,11 @@ public class CameraActivity extends QuickActivity
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         if (ActivityManager.isUserAMonkey())
             return super.onKeyUp(keyCode, event);
-        android.util.Log.i(CameraTAG, "onKeyUp->mFilmstripVisible:" + mFilmstripVisible);
-        android.util.Log.i(CameraTAG, "onKeyUp->mCurrentModule:" + mCurrentModule.getClass().getName());
         if (!mFilmstripVisible) {
             // If a module is in the middle of capture, it should
             // consume the key event.
             if (mCurrentModule.onKeyUp(keyCode, event)) {
-            	android.util.Log.i(CameraTAG, "onKeyUp->mCurrentModule->onKeyup->true");
+            	Log.i(TAG, "onKeyUp->mCurrentModule->onKeyup->true");
                 return true;
             } else if (keyCode == KeyEvent.KEYCODE_MENU
                     || keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
@@ -2507,20 +2502,15 @@ public class CameraActivity extends QuickActivity
                 mCameraAppUI.openModeList();
                 return true;
             } else if(keyCode == KeyEvent.KEYCODE_DPAD_DOWN){
-            	android.util.Log.i(CameraTAG, "onKeyUp->keycode_dpad_down");
+            	Log.i(TAG, "onKeyUp->keycode_dpad_down");
             	if(mModeListView.getVisibility() == View.VISIBLE && mCurrentModeIndex == 0){
             		mModeListView.getListView().getChildAt(1).performClick();
             	}
             }else if(keyCode == KeyEvent.KEYCODE_DPAD_UP){
-            	android.util.Log.i(CameraTAG, "onKeyUp->keycode_dpad_");
+            	Log.i(TAG, "onKeyUp->keycode_dpad_up");
             	if(mModeListView.getVisibility() == View.VISIBLE && mCurrentModeIndex == 1){
             		mModeListView.getListView().getChildAt(0).performClick();
             	}
-            	/** 暂时先关闭
-            	if(mModeListView.getVisibility() == View.VISIBLE && mCurrentModeIndex == 0){
-            		mModeListView.getChildAt(1).performClick();
-            	}
-            	*/
             }else if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
                 if (mDataAdapter.getTotalNumber() > 0)
                     mCameraAppUI.showFilmstrip();
