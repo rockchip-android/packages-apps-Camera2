@@ -972,8 +972,8 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
      */
     public void freezeScreenUntilPreviewReady() {
         Log.v(TAG, "freezeScreenUntilPreviewReady");
-        mModeTransitionView.setupModeCover(mCameraModuleScreenShotProvider
-                .getScreenShot(DOWN_SAMPLE_RATE_FOR_SCREENSHOT));
+        /*mModeTransitionView.setupModeCover(mCameraModuleScreenShotProvider
+                .getScreenShot(DOWN_SAMPLE_RATE_FOR_SCREENSHOT));*/
         mHideCoverRunnable = new Runnable() {
             @Override
             public void run() {
