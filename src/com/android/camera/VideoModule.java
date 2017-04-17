@@ -445,6 +445,19 @@ public class VideoModule extends CameraModule
                     || !mAppController.isShutterEnabled() || mCameraDevice == null) {
                 return;
             }
+            
+            // Set JPEG orientation. Even if screen UI is locked in portrait, camera orientation should
+            // still match device orientation (e.g., users should always get landscape photos while
+            // capturing by putting device in landscape.)
+            if (mOrientation == OrientationEventListener.ORIENTATION_UNKNOWN)
+                mOrientation = mDisplayRotation;
+            int orientation = mOrientation;
+            Characteristics info = mActivity.getCameraProvider().getCharacteristics(mCameraId);
+            int jpegRotation = info.getJpegOrientation(orientation);
+            mCameraDevice.setJpegOrientation(jpegRotation);
+            Log.v(TAG, "capture orientation (screen:device:used:jpeg) " +
+                    mDisplayRotation + ":" + mOrientation + ":" +
+                    orientation + ":" + jpegRotation);
 
             Location loc = mLocationManager.getCurrentLocation();
             CameraUtil.setGpsParameters(mCameraSettings, loc);
@@ -576,6 +589,7 @@ public class VideoModule extends CameraModule
             if (mOrientation != newOrientation) {
                 mOrientation = newOrientation;
             }
+            mOrientation = (360 - orientation) % 360;
         }
     }
 
