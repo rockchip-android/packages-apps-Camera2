@@ -415,7 +415,7 @@ public class VideoModule extends CameraModule
     @Override
     public void onSingleTapUp(View view, int x, int y) {
         if (mPaused || mCameraDevice == null
-                || mSwitchingCamera || mSnapshotInProgress) {
+                || mSwitchingCamera || mSnapshotInProgress || ActivityManager.isUserAMonkey()) {
             Log.d(TAG, "camera busy ignore touch focus");
             return;
         }
@@ -849,7 +849,9 @@ public class VideoModule extends CameraModule
 
     @Override
     public void onShutterButtonClick() {
+        Log.d(TAG, "onShutterButtonClick");
         if (mSwitchingCamera || !mAppController.getCameraAppUI().isModeCoverHide()) {
+            Log.d(TAG," mSwitchingCamera or isModeCoverHide not record!!!!!");
             return;
         }
         boolean stop = mMediaRecorderRecording;
@@ -1334,6 +1336,9 @@ public class VideoModule extends CameraModule
             Log.w(TAG, "null camera within proxy, not recording");
             return;
         }
+        boolean released = camera.isReleased();
+        Log.d(TAG, "camera isReleased:" + released);
+        if (released) return;
 
         mMediaRecorder.setCamera(camera);
         mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
