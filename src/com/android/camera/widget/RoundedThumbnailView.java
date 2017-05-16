@@ -409,6 +409,10 @@ public class RoundedThumbnailView extends View {
     public void startRevealThumbnailAnimation(String accessibilityString) {
         MainThread.checkMainThread();
         // Create a new request.
+        int measureWidth = getMeasuredWidth();
+        if (measureWidth == 0) {
+            measureWidth = (int) mRippleRingDiameterEnd;
+        }
         mPendingRequest = new RevealRequest(getMeasuredWidth(), accessibilityString);
     }
 
