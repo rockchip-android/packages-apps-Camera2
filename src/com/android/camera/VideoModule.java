@@ -2167,9 +2167,11 @@ public class VideoModule extends CameraModule
         }
 
         cancelCountDown();
-        mCountdownSoundPlayer.unloadSound(R.raw.timer_final_second);
-        mCountdownSoundPlayer.unloadSound(R.raw.timer_increment);
-
+        if(null != mCountdownSoundPlayer){
+            mCountdownSoundPlayer.unloadSound(R.raw.timer_final_second);
+            mCountdownSoundPlayer.unloadSound(R.raw.timer_increment);
+            mCountdownSoundPlayer.release();
+        }
         closeVideoFileDescriptor();
 
         if (mReceiver != null) {
@@ -2193,7 +2195,8 @@ public class VideoModule extends CameraModule
 
     @Override
     public void destroy() {
-        mCountdownSoundPlayer.release();
+        if(null != mCountdownSoundPlayer)
+            mCountdownSoundPlayer.release();
     }
 
     @Override

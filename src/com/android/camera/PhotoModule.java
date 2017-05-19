@@ -2477,8 +2477,11 @@ public class PhotoModule
         stopPreview();
         cancelCountDown();
         mAppController.getCameraAppUI().smileShutterAnimator(false);
-        mCountdownSoundPlayer.unloadSound(R.raw.timer_final_second);
-        mCountdownSoundPlayer.unloadSound(R.raw.timer_increment);
+        if(null != mCountdownSoundPlayer){
+            mCountdownSoundPlayer.unloadSound(R.raw.timer_final_second);
+            mCountdownSoundPlayer.unloadSound(R.raw.timer_increment);
+            mCountdownSoundPlayer.release();
+        }
 
         mNamedImages = null;
         // If we are in an image capture intent and has taken
@@ -2511,7 +2514,8 @@ public class PhotoModule
 
     @Override
     public void destroy() {
-        mCountdownSoundPlayer.release();
+        if(null != mCountdownSoundPlayer)
+            mCountdownSoundPlayer.release();
     }
 
     @Override
