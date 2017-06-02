@@ -1755,10 +1755,10 @@ public class PhotoModule
 
             mAutoFocusTime = System.currentTimeMillis() - mFocusStartTime;
             Log.v(TAG, "mAutoFocusTime = " + mAutoFocusTime + "ms   focused = "+focused);
-            if (mAutoFocusTime < 500) {
+            /*if (mAutoFocusTime < 500) {
                 Log.v(TAG, "drop too short focus result");
                 return;
-            }
+            }*/
             setCameraState(IDLE);
             mFocusManager.onAutoFocus(focused, false);
         }
