@@ -229,6 +229,7 @@ public class VideoModule extends CameraModule
     private List<String> mSupportedAntiBandings;
     private int mTimerDuration;
     private SoundPlayer mCountdownSoundPlayer;
+    private boolean mSoundplayer=false;
 
     private final CameraAgent.CameraAFCallback mAutoFocusCallback =
             new CameraAgent.CameraAFCallback() {
@@ -380,8 +381,10 @@ public class VideoModule extends CameraModule
         setDisplayOrientation();
 
         mUI.setCountdownFinishedListener(this);
-        mCountdownSoundPlayer = new SoundPlayer(mAppController.getAndroidContext());
-
+        if(!mSoundplayer){
+            mCountdownSoundPlayer = new SoundPlayer(mAppController.getAndroidContext());
+            mSoundplayer = true;
+        }
         mPendingSwitchCameraId = -1;
 
         mShutterIconId = CameraUtil.getCameraShutterIconId(
@@ -2104,6 +2107,11 @@ public class VideoModule extends CameraModule
         }
 
         mPaused = false;
+        Log.d(TAG,"resume");
+        if(!mSoundplayer){
+            mCountdownSoundPlayer = new SoundPlayer(mAppController.getAndroidContext());
+            mSoundplayer = true;
+        }
         installIntentFilter();
         mAppController.setShutterEnabled(false);
         mZoomValue = 1.0f;
@@ -2167,10 +2175,12 @@ public class VideoModule extends CameraModule
         }
 
         cancelCountDown();
-        if(null != mCountdownSoundPlayer){
+        Log.d(TAG,"pause");
+        if(mSoundplayer){
             mCountdownSoundPlayer.unloadSound(R.raw.timer_final_second);
             mCountdownSoundPlayer.unloadSound(R.raw.timer_increment);
             mCountdownSoundPlayer.release();
+            mSoundplayer = false;
         }
         closeVideoFileDescriptor();
 
@@ -2195,8 +2205,11 @@ public class VideoModule extends CameraModule
 
     @Override
     public void destroy() {
-        if(null != mCountdownSoundPlayer)
+    Log.d(TAG,"destroy");
+        if(mSoundplayer){
             mCountdownSoundPlayer.release();
+            mSoundplayer = false;
+        }
     }
 
     @Override

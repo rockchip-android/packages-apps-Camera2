@@ -290,6 +290,7 @@ public class PhotoModule
 
     private final int mGcamModeIndex;
     private SoundPlayer mCountdownSoundPlayer;
+    private boolean mSoundplayer=false;
 
     private CameraCapabilities.SceneMode mSceneMode;
 
@@ -519,8 +520,10 @@ public class PhotoModule
 
         mQuickCapture = mActivity.getIntent().getBooleanExtra(EXTRA_QUICK_CAPTURE, false);
         mHeadingSensor = new HeadingSensor(AndroidServices.instance().provideSensorManager());
-        mCountdownSoundPlayer = new SoundPlayer(mAppController.getAndroidContext());
-
+        if(!mSoundplayer){
+            mCountdownSoundPlayer = new SoundPlayer(mAppController.getAndroidContext());
+            mSoundplayer = true;
+        }
         try {
             mOneCameraManager = OneCameraModule.provideOneCameraManager();
         } catch (OneCameraException e) {
@@ -2365,7 +2368,11 @@ public class PhotoModule
     @Override
     public void resume() {
         mPaused = false;
-
+        Log.d(TAG,"resume");
+        if(!mSoundplayer){
+            mCountdownSoundPlayer = new SoundPlayer(mAppController.getAndroidContext());
+            mSoundplayer = true;
+        }
         mCountdownSoundPlayer.loadSound(R.raw.timer_final_second);
         mCountdownSoundPlayer.loadSound(R.raw.timer_increment);
         if (mFocusManager != null) {
@@ -2477,10 +2484,11 @@ public class PhotoModule
         stopPreview();
         cancelCountDown();
         mAppController.getCameraAppUI().smileShutterAnimator(false);
-        if(null != mCountdownSoundPlayer){
+        if(mSoundplayer){
             mCountdownSoundPlayer.unloadSound(R.raw.timer_final_second);
             mCountdownSoundPlayer.unloadSound(R.raw.timer_increment);
             mCountdownSoundPlayer.release();
+            mSoundplayer = false;
         }
 
         mNamedImages = null;
@@ -2514,8 +2522,11 @@ public class PhotoModule
 
     @Override
     public void destroy() {
-        if(null != mCountdownSoundPlayer)
+        Log.d(TAG,"destroy");
+        if(mSoundplayer){
             mCountdownSoundPlayer.release();
+            mSoundplayer = false;
+        }
     }
 
     @Override
